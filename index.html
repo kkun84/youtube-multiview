@@ -105,14 +105,14 @@ mv-tile .ended{position:absolute;inset:0;z-index:3;display:none;flex-direction:c
 mv-tile[data-ended] .ended{display:flex}
 .empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
 [data-slot="dialog-title"]:focus{outline:none}
-[data-slot="dialog-content"]{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 48px);overflow:auto;display:flex;flex-direction:column;gap:16px}
+[data-slot="dialog-content"]{width:min(880px,calc(100vw - 24px));max-height:calc(100dvh - 48px);overflow:auto;display:flex;flex-direction:column;gap:16px}
 .list{margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .list mv-list-item{display:flex;align-items:center;gap:6px;padding:4px 4px 4px 4px;background:var(--raised);border-radius:10px;min-height:52px;position:relative}
 .list mv-list-item[data-grabbed]{transform:translate(var(--drag-x,0),var(--drag-y,0));z-index:2;box-shadow:0 8px 24px rgba(0,0,0,.5);outline:2px solid var(--accent)}
 .list .ic{width:40px;height:40px;padding:0;display:grid;place-items:center;border-radius:8px;flex:none}
 .list .ic[aria-disabled="true"]{opacity:.35}
 .list .grip{cursor:grab;touch-action:none}
-.list .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list .name{flex:1;min-width:0;overflow:hidden;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;line-clamp:2;line-height:1.4;overflow-wrap:anywhere}
 .list .badge{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
 .addrow{display:flex;gap:8px;align-items:flex-start}
 .addrow [data-slot="field"]{flex:1;min-width:0}
