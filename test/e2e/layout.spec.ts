@@ -24,14 +24,37 @@ test("動画は画面の中に重ならずに並び、左上から右下へ順�
   })
 })
 
-test("並べ方の選択肢は全部画面の中に見えている", async ({ page }) => {
+test("並べ方の選択肢は全部画面の中に見えている。スマホでは選択メニューから選ぶ", async ({ page }) => {
   await openApp(page)
   const viewport = page.viewportSize()!
+  if (viewport.width <= 600) {
+    await expect(page.locator("#layout")).toBeHidden()
+    await page.locator("#layoutSelect button").click()
+    await page.locator('ui-select-item[value="1"]').click()
+    await settle(page)
+    const [a, b] = await Promise.all([box(tile(page, first)), box(tile(page, second))])
+    expect(Math.abs(a.x - b.x)).toBeLessThan(1)
+    expect(b.y).toBeGreaterThan(a.y)
+    await expect(page.locator("#layoutSelect button")).toContainText("1列")
+    return
+  }
   const items = page.locator("#layout ui-segmented-control-item")
   await expect(items.first()).toBeVisible()
   for (const item of await items.all()) {
     const r = await box(item)
     expect(r.x).toBeGreaterThanOrEqual(0)
+    expect(r.x + r.width).toBeLessThanOrEqual(viewport.width)
+  }
+})
+
+test("スマホでは上の操作バーが1段に収まる", async ({ page }) => {
+  await openApp(page)
+  test.skip(page.viewportSize()!.width > 600, "スマホの幅だけ")
+  const bar = await box(page.locator("header.bar"))
+  expect(bar.height).toBeLessThan(60)
+  const viewport = page.viewportSize()!
+  for (const button of await page.locator("header.bar button:visible").all()) {
+    const r = await box(button)
     expect(r.x + r.width).toBeLessThanOrEqual(viewport.width)
   }
 })

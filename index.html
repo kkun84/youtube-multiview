@@ -91,6 +91,12 @@
         >
       </ui-toolbar>
       <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
+      <ui-select class="layout-select" id="layoutSelect">
+        <ui-select-trigger
+          ><button aria-label="並び方"><ui-select-value></ui-select-value></button
+        ></ui-select-trigger>
+        <ui-select-content hidden></ui-select-content>
+      </ui-select>
     </header>
 
     <div class="movebar" id="updatebar" role="status" hidden>

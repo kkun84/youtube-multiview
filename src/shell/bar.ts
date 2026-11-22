@@ -48,12 +48,17 @@ export const wireBar = (app: App): Effect.Effect<void, never, Scope.Scope> =>
       announce("音声を消しました")
     }),
     listen(byId("toLive"), "click", () => allToLive(app)),
-    listen<CustomEvent<{ value: string | null }>>(byId("layout"), "valuechange", (e) => {
-      app.state.layoutMode = parseLayout(e.detail.value ?? "auto")
-      app.persist()
-      app.layout()
-      app.paint()
-    }),
+    ...["layout", "layoutSelect"].map((id) =>
+      listen<CustomEvent<{ value: string | null }>>(byId(id), "valuechange", (e) => {
+        const mode = parseLayout(e.detail.value ?? "auto")
+        if (mode === app.state.layoutMode) return
+        app.state.layoutMode = mode
+        app.renderLayoutChoices()
+        app.persist()
+        app.layout()
+        app.paint()
+      })
+    ),
     listen<CustomEvent<{ value: boolean }>>(byId("ytSwitch"), "checkedchange", (e) => {
       const on = Boolean(e.detail.value)
       document.body.classList.toggle("yt-controls", on)

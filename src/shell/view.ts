@@ -1,4 +1,4 @@
-import type { UiSegmentedControlElement } from "@ui-sdk/web"
+import type { UiSegmentedControlElement, UiSelectElement } from "@ui-sdk/web"
 import { icons } from "./icons"
 import { arrange, layoutChoices, packTop } from "../core/layout"
 import { formatDuration } from "../core/text"
@@ -46,6 +46,15 @@ export function renderLayoutChoices({ state }: App): void {
   seg.hidden = n < 2
   whenDefined("ui-segmented-control", () => {
     seg.value = layoutKey(state.layoutMode)
+  })
+  // スマホでは同じ選択肢を選択メニューで出す
+  const select = byId<UiSelectElement>("layoutSelect")
+  q(select, "ui-select-content").innerHTML = choices
+    .map(([v, label]) => `<ui-select-item value="${layoutKey(v)}">${label}</ui-select-item>`)
+    .join("")
+  select.hidden = n < 2
+  whenDefined("ui-select", () => {
+    select.value = layoutKey(state.layoutMode)
   })
 }
 

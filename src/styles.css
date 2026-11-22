@@ -147,18 +147,42 @@ button:focus-visible {
     padding: 0;
     justify-content: center;
   }
-  /* 並べ方は2段目に全部並べる(横に流すと隠れた選択肢に気づけない) */
+  /* スマホでは操作バーを1段にして、動画に使える高さを増やす。並べ方は選択メニューにする */
+  .bar {
+    flex-wrap: nowrap;
+    padding: 4px 6px;
+  }
+  .bar [data-slot="toolbar"] {
+    flex-wrap: nowrap;
+  }
   .seg {
-    margin-left: 0;
-    flex: 1 1 100%;
-    display: flex;
+    display: none;
   }
-  .seg [data-slot="segmented-control-item"] {
+  .layout-select {
+    display: block;
     flex: 1;
-    justify-content: center;
-    padding: 0 6px;
-    font-size: 12.5px;
+    min-width: 0;
   }
+  .layout-select [data-slot="select-trigger"] {
+    width: 100%;
+    min-width: 0;
+    justify-content: space-between;
+    padding: 0 10px;
+    overflow: hidden;
+  }
+  .layout-select [data-slot="select-value"] {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}
+@media (min-width: 601px) {
+  .layout-select {
+    display: none;
+  }
+}
+.layout-select[hidden] {
+  display: none;
 }
 
 mv-board {
