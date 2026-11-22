@@ -3,183 +3,404 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0d0f14">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="同時視聴">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <title>YouTube同時視聴</title>
+<script type="module" src="https://ui-sdk.dev/web@0.1.0-beta.13.js"></script>
+<link rel="stylesheet" href="https://ui-sdk.dev/web@0.1.0-beta.13.css">
 <style>
-/* 動画を画面いっぱいに格子状に並べ、上の細い帯で音声の切り替えとURLの編集をする */
+@layer ui-sdk;
+/* 上の細い帯で操作し、残りの全面に動画を16:9のまま一番大きく並べる */
 :root{
-  --bg:#0d0f14; --panel:#171a22; --ink:#eceae6; --muted:#9097a6; --line:#2a2f3c; --accent:#ff6a2b;
-  --body:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
   color-scheme:dark;
+  --bg:#0d0f14; --panel:#171a22; --raised:#232836; --ink:#eceae6; --muted:#a3aaba; --line:#353c4e; --accent:#ff6a2b; --on-accent:#1a0d06;
+  --ui-background:var(--panel); --ui-foreground:var(--ink); --ui-muted:var(--raised); --ui-muted-foreground:var(--muted);
+  --ui-border:var(--line); --ui-input:#5a637a; --ui-primary:var(--accent); --ui-primary-foreground:var(--on-accent);
+  --ui-ring:var(--accent); --ui-ring-border:var(--accent); --ui-radius:10px; --ui-overlay:rgba(0,0,0,.6);
+  --ui-font-sans:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  --gap:4px; --ease:.22s cubic-bezier(.2,.7,.2,1);
 }
 *{box-sizing:border-box}
-html,body{height:100%;margin:0}
-body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;display:flex;flex-direction:column;
+html,body{height:100%;margin:0;overflow:hidden}
+body{background:var(--bg);color:var(--ink);font-family:var(--ui-font-sans);font-size:15px;display:flex;flex-direction:column;
+  touch-action:manipulation;-webkit-tap-highlight-color:transparent;
   padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
-button{font:inherit;color:inherit;cursor:pointer}
-button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-.bar{display:flex;gap:6px;align-items:center;padding:6px 8px;flex-wrap:wrap}
-.bar .title{font-weight:700;margin-right:auto;white-space:nowrap}
-@media (max-width:500px){.bar .title{display:none}.bar{justify-content:space-between}.chip{padding:6px 9px;font-size:13px}}
-.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;white-space:nowrap}
-.chip.on{border-color:var(--accent);color:var(--accent)}
-.grid{flex:1;min-height:0;display:grid;gap:4px;padding:0 4px 4px;justify-content:center;align-content:center}
-.tile{position:relative;background:#000;border:2px solid transparent;border-radius:6px;overflow:hidden;min-height:0}
-.tile.audio{border-color:var(--accent)}
-.tile .frame{position:absolute;inset:0}
-.tile .frame iframe{width:100%;height:100%;border:0;display:block}
-.tile .sound{position:absolute;left:6px;bottom:6px;z-index:2;background:rgba(13,15,20,.82);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700}
-.tile.audio .sound{background:var(--accent);border-color:var(--accent);color:#fff}
-.tile .label{position:absolute;left:0;right:0;top:0;z-index:2;padding:4px 8px;font-size:12px;background:linear-gradient(rgba(0,0,0,.7),transparent);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.edit{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top)) 12px 12px}
-.edit[hidden]{display:none}
-.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(560px,100%);display:flex;flex-direction:column;gap:10px}
-.sheet h2{margin:0;font-size:17px}
-.sheet p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
-.sheet textarea{width:100%;min-height:150px;font:inherit;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px}
-.sheet .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
-.sheet .err{color:#ff8a8a}
-.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
+.sr{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+svg{flex:none}
+button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.bar{display:flex;gap:8px;align-items:center;padding:6px 8px;flex-wrap:wrap}
+.bar [data-slot="toolbar"]{display:flex;gap:6px;flex-wrap:wrap}
+.bar button{height:36px;display:inline-flex;align-items:center;gap:6px;font-weight:700}
+.seg{position:relative;display:inline-flex;isolation:isolate;margin-left:auto;background:var(--raised);border-radius:999px;padding:3px}
+.seg [data-slot="segmented-control-item"]{min-height:30px;display:inline-flex;align-items:center;padding:0 12px;border-radius:999px;font-weight:700;font-size:13px;cursor:pointer;color:var(--muted);white-space:nowrap}
+.seg [data-slot="segmented-control-item"][data-checked]{color:var(--on-accent)}
+.seg [data-slot="segmented-control-item"]:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.seg [data-slot="segmented-control-indicator"]{position:absolute;z-index:-1;top:var(--segmented-control-indicator-top);left:var(--segmented-control-indicator-left);width:var(--segmented-control-indicator-width);height:var(--segmented-control-indicator-height);background:var(--accent);border-radius:999px;transition:left var(--ease),width var(--ease)}
+.seg [data-slot="segmented-control-indicator"][data-activation-direction="none"]{transition:none}
+@media (max-width:560px){.seg{margin-left:0}.bar .long{display:none}}
+
+mv-board{flex:1;min-height:0;position:relative;display:block;margin:0 var(--gap) var(--gap)}
+mv-tile{position:absolute;display:block;background:#000;border-radius:8px;overflow:hidden;
+  left:var(--x);top:var(--y);width:var(--w);height:var(--h);
+  transition:left var(--ease),top var(--ease),width var(--ease),height var(--ease);
+  outline:2px solid transparent;outline-offset:-2px}
+mv-tile[data-audio]{outline-color:var(--accent)}
+mv-tile[data-grabbed]{transform:translate(var(--drag-x,0),var(--drag-y,0));z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.6);outline-color:#fff}
+mv-tile[data-grabbed][data-dragging]{transition:none}
+mv-board:has([data-grabbed]) iframe{pointer-events:none}
+mv-tile .frame,mv-tile .frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0;display:block}
+/* 動画の上の透明な面。タップでYouTubeが一時停止したり、ダブルタップで10秒戻ったりするのを防ぐ */
+mv-tile .shield{position:absolute;inset:0;z-index:1}
+body.yt-controls mv-tile .shield{display:none}
+mv-tile .controls{position:absolute;left:6px;bottom:6px;z-index:2;display:flex;gap:6px}
+mv-tile .controls button{width:40px;height:40px;padding:0;display:grid;place-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(13,15,20,.78);color:var(--ink);cursor:pointer;touch-action:none}
+mv-tile .controls button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
+mv-tile .controls .grip{cursor:grab}
+mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000}
+
+.empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
+[data-slot="dialog-content"]{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 48px);overflow:auto;display:flex;flex-direction:column;gap:16px}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.list li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;background:var(--raised);border-radius:10px;min-height:48px}
+.list .num{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.2em;text-align:right}
+.list .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.list .badge{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
+.addrow{display:flex;gap:8px;align-items:flex-start}
+.addrow [data-slot="field"]{flex:1;min-width:0}
+.addrow > [data-slot="button"], .addrow > button{margin-top:26px}
+.row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.opt{display:flex;gap:12px;align-items:flex-start}
+.opt [data-slot="field"]{flex-direction:row;align-items:center;gap:10px}
+.hint{color:var(--muted);font-size:13px;margin:0;line-height:1.6}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 </head>
 <body>
 <div class="bar">
-  <span class="title">同時視聴</span>
-  <button class="chip" id="playAll" type="button">全部を再生</button>
-  <button class="chip" id="muteAll" type="button">音を消す</button>
-  <button class="chip" id="layout" type="button">並び: 自動</button>
-  <button class="chip" id="editBtn" type="button">URLを編集</button>
+  <ui-toolbar aria-label="操作">
+    <ui-toolbar-button><button id="openList"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h12M3 12h12M3 18h8M19 15v6M16 18h6"/></svg>動画<span class="long">の追加・削除</span></button></ui-toolbar-button>
+    <ui-toolbar-button><button id="playAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg><span class="long">全部を</span>再生</button></ui-toolbar-button>
+    <ui-toolbar-button><button id="muteAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6m0-6-5 6"/></svg>消音</button></ui-toolbar-button>
+  </ui-toolbar>
+  <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
 </div>
-<div class="grid" id="grid"></div>
 
-<div class="edit" id="edit" hidden>
-  <form class="sheet" id="form">
-    <h2>見たい動画のURL</h2>
-    <p>YouTubeの動画や配信のURLを1行に1つずつ入れてください(最大9つ)。全部の映像が同時に流れ、音は「この音声」を押した1つだけ出ます。</p>
-    <textarea id="urls" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
-    <p class="err" id="err"></p>
-    <div class="row">
-      <button class="chip" type="button" id="preset">篝火#16の4配信を入れる</button>
-      <button class="chip" type="button" id="cancel">閉じる</button>
-      <button class="chip on" type="submit">この内容で表示</button>
+<mv-board id="board" aria-label="並んでいる動画" aria-describedby="moveHelp"></mv-board>
+<p class="sr" id="moveHelp">各動画の移動ボタンでスペースキーを押すと持ち上がり、矢印キーで場所を選んで、もう一度スペースキーで置きます。Escapeキーで取り消せます。</p>
+
+<ui-dialog id="dialog">
+  <ui-dialog-backdrop hidden></ui-dialog-backdrop>
+  <ui-dialog-content hidden>
+    <ui-dialog-title>見る動画</ui-dialog-title>
+    <ui-dialog-description>YouTubeの動画や配信を9つまで並べられます。映像は全部同時に流れ、音は選んだ1つだけ出ます。</ui-dialog-description>
+    <ol class="list" id="list"></ol>
+    <form class="addrow" id="addForm" novalidate>
+      <ui-field id="addField">
+        <ui-field-label>動画のURLを追加</ui-field-label>
+        <ui-input><input id="addInput" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="https://www.youtube.com/watch?v=…"></ui-input>
+        <ui-field-error match="true" id="addError"></ui-field-error>
+      </ui-field>
+      <ui-button><button type="submit" data-variant="solid">追加</button></ui-button>
+    </form>
+    <div class="opt">
+      <ui-field>
+        <ui-switch id="ytSwitch"><ui-switch-thumb></ui-switch-thumb></ui-switch>
+        <ui-field-label>YouTubeの操作パネルを使う</ui-field-label>
+      </ui-field>
     </div>
-  </form>
-</div>
+    <p class="hint">オフのときは、動画をダブルタップすると大きく表示し、もう一度ダブルタップで元に戻ります。オンにすると、画質の変更などYouTubeの操作ができる代わりに、タップで一時停止やダブルタップで10秒移動が起きます。</p>
+    <div class="row">
+      <ui-button id="preset"><button>篝火#16の4配信に戻す</button></ui-button>
+      <ui-dialog-close><button data-variant="solid">閉じる</button></ui-dialog-close>
+    </div>
+  </ui-dialog-content>
+</ui-dialog>
 
-<script>
-const PRESET=[
-  ["https://www.youtube.com/watch?v=QNZjuyvcjw8","East Geek Smash(メイン)"],
-  ["https://www.youtube.com/watch?v=3UtyipqHJbw","ぷらずま"],
-  ["https://www.youtube.com/watch?v=6Lp2NYJDVsQ","無明遊者"],
-  ["https://www.youtube.com/watch?v=_oNm1mKvgac","VGBootCamp(英語)"]
-];
-const $=id=>document.getElementById(id);
-const grid=$("grid");
-let ids=[], players=[], audioIdx=-1, layoutMode=0; // 0は自動、1以上は列数の指定
+<script type="module">
+import { definePrimitive, createParts, createChange, createReorder, reorderMessage, wrappedButton, announce } from "https://ui-sdk.dev/web@0.1.0-beta.13/core.js"
+
+const PRESET=["QNZjuyvcjw8","3UtyipqHJbw","6Lp2NYJDVsQ","_oNm1mKvgac"]
+const MAX=9, FOCUS="focus"
+const $=id=>document.getElementById(id)
+const board=$("board")
+const titles=new Map()
+const nameOf=id=>titles.get(id)||"動画"+(ids.indexOf(id)+1)
+
+const reorderText=m=>{
+  switch(m.type){
+    case "grab": return `${m.label}を持ち上げました。${m.total}個中${m.position}番目です。矢印キーで動かし、スペースキーで置きます。`
+    case "move": return `${m.total}個中${m.position}番目`
+    case "drop": return `${m.label}を${m.position}番目に置きました。`
+    case "cancel": return `移動を取り消しました。`
+    default: return reorderMessage(m)
+  }
+}
+
+// 並べ替えはUI SDKのcreateReorderに任せる。iframeは動かすと読み込み直しになるので、DOMの順番は変えず、data-indexで表示位置だけを変える
+const sortableBoard=definePrimitive({
+  name:"sortable-board",
+  options:{value:"list",defaultValue:"list",onValueChange:"callback",labelOf:"value"},
+  controlled:["value"],
+  state:o=>({value:o.value??o.defaultValue??[],moving:null}),
+  sync:o=>o.value===undefined?{}:{value:o.value},
+  api:context=>{
+    const change=createChange(context)
+    const reorder=createReorder(context,{
+      slot:"tile",key:"value",draft:"moving",
+      set:(value,details)=>change("value",value,details),
+      orientation:()=>"grid",
+      label:key=>context.options().labelOf?.(key),
+      message:reorderText,
+    })
+    return {reorder,move:(key,index)=>reorder.move(key,index)}
+  },
+  slots:slot=>({
+    root:slot({role:"list"}),
+    tile:slot({
+      props:{value:"key"},
+      role:"listitem",
+      attrs:(state,part)=>({
+        "data-index":String(part.api.reorder.order(state).indexOf(part.key)),
+        "data-grabbed":part.api.reorder.moving(state,part.key)?"":undefined,
+        "data-dragging":part.api.reorder.dragging(state,part.key)?"":undefined,
+      }),
+      bind:(el,part)=>part.api.reorder.bind(el,part),
+    }),
+    handle:slot({
+      props:{value:{kind:"key",from:"tile",required:true}},
+      role:"button",
+      press:{none:"Space and Enter pick the tile up in keydown, and a pointer drags it in pointerdown."},
+      attrs:(state,part)=>({"aria-pressed":String(part.api.reorder.moving(state,part.key))}),
+      on:{
+        keydown:(event,{api,key})=>{api.reorder.keydown(event,key)},
+        pointerdown:(event,{api,key})=>api.reorder.pointerdown(event,key),
+      },
+    }),
+  }),
+  agent:{actions:["move"]},
+})
+createParts(sortableBoard,{
+  root:"mv-board",
+  tile:"mv-tile",
+  handle:{tag:"mv-handle",target:wrappedButton,display:"contents"},
+})
+
+let ids=[], tiles=new Map(), audioId=null, layoutMode="0", ytReady=false, seq=0
+const store={
+  get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
+  set(k,v){try{localStorage.setItem(k,v)}catch(e){}},
+}
 
 function parseId(s){
-  s=s.trim(); if(!s) return null;
-  if(/^[\w-]{11}$/.test(s)) return s;
+  s=s.trim(); if(!s) return null
+  if(/^[\w-]{11}$/.test(s)) return s
   try{
-    const u=new URL(s.startsWith("http")?s:"https://"+s);
-    if(u.hostname.endsWith("youtu.be")) return u.pathname.slice(1,12)||null;
-    if(u.searchParams.get("v")) return u.searchParams.get("v");
-    const m=u.pathname.match(/\/(?:live|embed|shorts|v)\/([\w-]{11})/);
-    if(m) return m[1];
+    const u=new URL(/^https?:/i.test(s)?s:"https://"+s)
+    if(!/(^|\.)(youtube\.com|youtube-nocookie\.com|youtu\.be)$/.test(u.hostname)) return null
+    if(u.hostname.endsWith("youtu.be")) return /^[\w-]{11}/.test(u.pathname.slice(1))?u.pathname.slice(1,12):null
+    const v=u.searchParams.get("v"); if(v&&/^[\w-]{11}$/.test(v)) return v
+    const m=u.pathname.match(/\/(?:live|embed|shorts|v)\/([\w-]{11})/)
+    if(m) return m[1]
   }catch(e){}
-  return undefined;
+  return null
 }
-function readHash(){
-  const m=location.hash.match(/v=([\w,-]+)/);
-  return m?m[1].split(",").filter(x=>/^[\w-]{11}$/.test(x)).slice(0,9):null;
+function persist(){
+  store.set("mv-ids",ids.join(",")); store.set("mv-layout",layoutMode)
+  history.replaceState(null,"","#v="+ids.join(","))
 }
-function save(){
-  try{localStorage.setItem("mv-ids",ids.join(","))}catch(e){}
-  history.replaceState(null,"","#v="+ids.join(","));
+
+/* ---------- 並べ方 ---------- */
+// 段の数が変わる列数だけを選択肢にする(4つなら1・2・4列。3列だと3つと1つの中途半端な並びになる)
+function colChoices(n){const out=[];let prev=0;for(let c=1;c<=n;c++){const r=Math.ceil(n/c);if(r!==prev){out.push(c);prev=r}}return out}
+function gridRects(n,c,W,H,g){
+  const r=Math.ceil(n/c)
+  const w=Math.max(0,Math.min((W-g*(c-1))/c,((H-g*(r-1))/r)*16/9)), h=w*9/16
+  const ox=(W-(w*c+g*(c-1)))/2, oy=(H-(h*r+g*(r-1)))/2
+  return {size:w,rects:Array.from({length:n},(_,i)=>({x:ox+(i%c)*(w+g),y:oy+Math.floor(i/c)*(h+g),w,h}))}
 }
-// 画面の縦横サイズに対して、16:9の動画が一番大きく映る列数を選ぶ。iPhoneの縦なら1列、iPadの横なら2列になる
-function fit(n){
-  const g=grid.getBoundingClientRect(), gap=4;
-  const W=g.width-8, H=g.height-4;
-  let best={c:1,w:0};
-  const cands=layoutMode?[Math.min(layoutMode,n)]:Array.from({length:n},(_,i)=>i+1);
-  for(const c of cands){
-    const r=Math.ceil(n/c);
-    const w=Math.min((W-gap*(c-1))/c,((H-gap*(r-1))/r)*16/9);
-    if(w>best.w) best={c,w};
+// 1つを大きく、残りを下の段か右の列に小さく並べる。大きい方が広く映る置き方を選ぶ
+function focusRects(n,W,H,g){
+  if(n<2) return gridRects(n,1,W,H,g).rects
+  const m=n-1, plans=[]
+  {let sw=(W-g*(m-1))/m, sh=sw*9/16; if(sh>H*.3){sh=H*.3;sw=sh*16/9}
+   let mh=H-sh-g, mw=Math.min(W,mh*16/9); mh=mw*9/16
+   const total=mh+g+sh, oy=(H-total)/2, rowW=sw*m+g*(m-1)
+   plans.push({area:mw*mh,rects:[{x:(W-mw)/2,y:oy,w:mw,h:mh},...Array.from({length:m},(_,i)=>({x:(W-rowW)/2+i*(sw+g),y:oy+mh+g,w:sw,h:sh}))]})}
+  {let sh=(H-g*(m-1))/m, sw=sh*16/9; if(sw>W*.3){sw=W*.3;sh=sw*9/16}
+   let mw=W-sw-g, mh=Math.min(H,mw*9/16); mw=mh*16/9
+   const total=mw+g+sw, ox=(W-total)/2, colH=sh*m+g*(m-1)
+   plans.push({area:mw*mh,rects:[{x:ox,y:(H-mh)/2,w:mw,h:mh},...Array.from({length:m},(_,i)=>({x:ox+mw+g,y:(H-colH)/2+i*(sh+g),w:sw,h:sh}))]})}
+  return plans.sort((a,b)=>b.area-a.area)[0].rects
+}
+function layout(){
+  const n=ids.length; if(!n) return
+  const W=board.clientWidth, H=board.clientHeight, g=4
+  let rects
+  if(layoutMode===FOCUS) rects=focusRects(n,W,H,g)
+  else if(layoutMode!=="0") rects=gridRects(n,Number(layoutMode),W,H,g).rects
+  else rects=colChoices(n).map(c=>gridRects(n,c,W,H,g)).sort((a,b)=>b.size-a.size)[0].rects
+  rects.forEach((r,i)=>{
+    board.style.setProperty(`--x${i}`,r.x+"px");board.style.setProperty(`--y${i}`,r.y+"px")
+    board.style.setProperty(`--w${i}`,r.w+"px");board.style.setProperty(`--h${i}`,r.h+"px")
+  })
+}
+const slotCss=document.createElement("style")
+slotCss.textContent=Array.from({length:MAX},(_,i)=>`mv-tile[data-index="${i}"]{--x:var(--x${i});--y:var(--y${i});--w:var(--w${i});--h:var(--h${i})}`).join("\n")
+document.head.appendChild(slotCss)
+
+function renderLayoutChoices(){
+  const n=ids.length, seg=$("layout")
+  const choices=[["0","自動"],...colChoices(n).filter(c=>n>1).map(c=>[String(c),c===n?"横一列":c+"列"]),...(n>2?[[FOCUS,"1つを大きく"]]:[])]
+  if(!choices.some(([v])=>v===layoutMode)) layoutMode="0"
+  seg.innerHTML='<ui-segmented-control-indicator></ui-segmented-control-indicator>'+choices.map(([v,l])=>`<ui-segmented-control-item value="${v}">${l}</ui-segmented-control-item>`).join("")
+  seg.hidden=n<2
+  customElements.whenDefined("ui-segmented-control").then(()=>{seg.value=layoutMode})
+}
+$("layout").addEventListener("valuechange",e=>{layoutMode=e.detail.value??"0";persist();layout();paint()})
+
+/* ---------- 音声と拡大 ---------- */
+function paint(){
+  for(const [id,t] of tiles){
+    const name=nameOf(id), on=id===audioId, big=layoutMode===FOCUS&&ids[0]===id
+    t.el.toggleAttribute("data-audio",on)
+    t.sound.setAttribute("aria-pressed",String(on))
+    t.sound.setAttribute("aria-label",on?`${name}の音声を出しています`:`${name}の音声を出す`)
+    t.zoom.setAttribute("aria-pressed",String(big))
+    t.zoom.setAttribute("aria-label",big?`${name}を元の大きさに戻す`:`${name}を大きく表示`)
+    t.zoomIcon.innerHTML=big?ICON.shrink:ICON.grow
+    t.grip.setAttribute("aria-label",`${name}を移動`)
+    t.title.textContent=name
   }
-  return best;
 }
-function applyLayout(){
-  const n=ids.length, {c,w}=fit(n), h=w*9/16;
-  grid.style.gridTemplateColumns=`repeat(${c},${Math.floor(w)}px)`;
-  grid.style.gridTemplateRows=`repeat(${Math.ceil(n/c)},${Math.floor(h)}px)`;
-  $("layout").textContent="並び: "+(layoutMode?layoutMode+"列":"自動");
+function setAudio(id){
+  audioId=audioId===id?null:id
+  for(const [tid,t] of tiles){
+    const p=t.player; if(!p?.mute) continue
+    if(tid===audioId){p.unMute();p.setVolume(100)}else p.mute()
+    p.playVideo()
+  }
+  paint()
+  announce(audioId?`${nameOf(audioId)}の音声を出しています`:"音声を消しました")
 }
-function setAudio(i){
-  audioIdx=i;
-  players.forEach((p,j)=>{
-    if(!p||!p.mute) return;
-    if(j===i){p.unMute();p.setVolume(100);}else p.mute();
-    p.playVideo();
-  });
-  document.querySelectorAll(".tile").forEach((t,j)=>{
-    t.classList.toggle("audio",j===i);
-    t.querySelector(".sound").textContent=j===i?"音声オン":"この音声";
-  });
+function toggleFocus(id){
+  if(layoutMode===FOCUS&&ids[0]===id){layoutMode="0"}
+  else{
+    if(ids[0]!==id) setOrder([id,...ids.filter(x=>x!==id)])
+    layoutMode=FOCUS
+  }
+  renderLayoutChoices(); persist(); layout(); paint()
+  announce(layoutMode===FOCUS?`${nameOf(id)}を大きく表示しました`:"元の並びに戻しました")
 }
-function build(){
-  players.forEach(p=>{try{p.destroy()}catch(e){}});
-  players=[]; audioIdx=-1; grid.innerHTML="";
-  if(!ids.length){grid.innerHTML='<div class="empty">「URLを編集」から見たい動画を追加してください。</div>';grid.style.gridTemplateColumns="1fr";grid.style.gridTemplateRows="1fr";return;}
-  applyLayout();
-  ids.forEach((id,i)=>{
-    const t=document.createElement("div"); t.className="tile";
-    t.innerHTML=`<div class="frame"><div id="p${i}"></div></div><div class="label" id="l${i}"></div><button class="sound" type="button">この音声</button>`;
-    t.querySelector(".sound").addEventListener("click",()=>setAudio(i));
-    grid.appendChild(t);
-    players[i]=new YT.Player("p"+i,{videoId:id,
-      playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,modestbranding:1},
-      events:{
-        onReady:e=>{e.target.mute();e.target.playVideo();const d=e.target.getVideoData&&e.target.getVideoData();if(d&&d.title)$("l"+i).textContent=d.title;},
-        onStateChange:e=>{const d=e.target.getVideoData&&e.target.getVideoData();if(d&&d.title)$("l"+i).textContent=d.title;}
-      }});
-  });
+
+/* ---------- 動画の枠 ---------- */
+const ICON={
+  sound:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
+  grow:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>',
+  shrink:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>',
+  grip:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><circle cx="9" cy="6" r="1.6"/><circle cx="15" cy="6" r="1.6"/><circle cx="9" cy="12" r="1.6"/><circle cx="15" cy="12" r="1.6"/><circle cx="9" cy="18" r="1.6"/><circle cx="15" cy="18" r="1.6"/></svg>',
 }
+function makeTile(id){
+  const key="yt"+(++seq)
+  const el=document.createElement("mv-tile")
+  el.setAttribute("value",id)
+  el.innerHTML=`<span class="sr tile-title"></span><div class="frame"><div id="${key}"></div></div><div class="shield" aria-hidden="true"></div>
+    <div class="controls">
+      <button type="button" class="sound">${ICON.sound}</button>
+      <button type="button" class="zoom"><span class="zi"></span></button>
+      <mv-handle><button type="button" class="grip">${ICON.grip}</button></mv-handle>
+    </div>`
+  const t={el,player:null,sound:el.querySelector(".sound"),zoom:el.querySelector(".zoom"),zoomIcon:el.querySelector(".zi"),grip:el.querySelector(".grip"),title:el.querySelector(".tile-title")}
+  t.sound.addEventListener("click",()=>setAudio(id))
+  t.zoom.addEventListener("click",()=>toggleFocus(id))
+  // ダブルタップを自前で判定する(iOSのdblclickはタッチ操作だと届かないことがある)
+  let last=0
+  el.querySelector(".shield").addEventListener("pointerup",e=>{
+    const now=e.timeStamp; if(now-last<320){last=0;toggleFocus(id)}else last=now
+  })
+  board.appendChild(el)
+  const showTitle=()=>{const d=t.player?.getVideoData?.();if(d?.title&&titles.get(id)!==d.title){titles.set(id,d.title);paint();renderList()}}
+  t.player=new YT.Player(key,{videoId:id,
+    playerVars:{autoplay:1,mute:1,playsinline:1,rel:0},
+    events:{onReady:e=>{e.target.mute();e.target.playVideo();showTitle()},onStateChange:showTitle}})
+  return t
+}
+function setOrder(next){
+  ids=next
+  customElements.whenDefined("mv-board").then(()=>{board.value=[...ids]})
+  board.value=[...ids]
+}
+function render(){
+  if(!ytReady) return
+  for(const [id,t] of tiles) if(!ids.includes(id)){try{t.player.destroy()}catch(e){} t.el.remove(); tiles.delete(id); if(audioId===id) audioId=null}
+  for(const id of ids) if(!tiles.has(id)) tiles.set(id,makeTile(id))
+  setOrder(ids)
+  board.querySelector(".empty")?.remove()
+  if(!ids.length){
+    board.insertAdjacentHTML("beforeend",'<div class="empty"><p>見たい動画を追加してください。</p><ui-button><button data-variant="solid">動画を追加する</button></ui-button></div>')
+    board.querySelector(".empty button").addEventListener("click",()=>{$("dialog").open=true})
+  }
+  renderLayoutChoices(); persist(); layout(); paint(); renderList()
+}
+board.addEventListener("valuechange",e=>{
+  ids=[...e.detail.value]; board.value=[...ids]
+  persist(); paint(); renderList()
+})
+
+/* ---------- 一覧(ダイアログ) ---------- */
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))
+function renderList(){
+  const list=$("list")
+  list.innerHTML=ids.length?ids.map((id,i)=>`<li><span class="num" aria-hidden="true">${i+1}</span><span class="name">${esc(nameOf(id))}</span>${id===audioId?'<span class="badge">音声オン</span>':""}<ui-button data-id="${id}"><button aria-label="${esc(nameOf(id))}を削除">削除</button></ui-button></li>`).join(""):'<li><span class="name">まだ動画がありません。</span></li>'
+  list.querySelectorAll("ui-button[data-id]").forEach(b=>b.querySelector("button").addEventListener("click",()=>{
+    const id=b.dataset.id, name=nameOf(id)
+    ids=ids.filter(x=>x!==id); render(); announce(`${name}を削除しました`)
+    ;(list.querySelector("button")||$("addInput")).focus()
+  }))
+  $("addInput").disabled=ids.length>=MAX
+  $("addInput").placeholder=ids.length>=MAX?`${MAX}つまで並べています`:"https://www.youtube.com/watch?v=…"
+}
+$("addForm").addEventListener("submit",e=>{
+  e.preventDefault()
+  const field=$("addField"), input=$("addInput"), raw=input.value, id=parseId(raw)
+  let msg=""
+  if(!raw.trim()) msg="URLを入れてください。"
+  else if(!id) msg="YouTubeの動画として読み取れません。チャンネルのURLではなく、動画や配信そのもののURLを入れてください。"
+  else if(ids.includes(id)) msg="この動画はもう並んでいます。"
+  else if(ids.length>=MAX) msg=`並べられるのは${MAX}つまでです。どれかを削除してから追加してください。`
+  $("addError").textContent=msg; field.invalid=msg?true:undefined
+  if(msg){input.focus();return}
+  ids=[...ids,id]; input.value=""; render(); announce("動画を追加しました")
+})
+$("preset").addEventListener("click",()=>{ids=[...PRESET];render();announce("篝火#16の4配信に戻しました")})
+$("openList").addEventListener("click",()=>{$("dialog").open=true})
+$("playAll").addEventListener("click",()=>{for(const [id,t] of tiles){const p=t.player;if(p?.playVideo){if(id!==audioId)p.mute();p.playVideo()}}})
+$("muteAll").addEventListener("click",()=>{for(const t of tiles.values())t.player?.mute?.();audioId=null;paint();renderList();announce("音声を消しました")})
+$("ytSwitch").addEventListener("checkedchange",e=>{document.body.classList.toggle("yt-controls",e.detail.value);store.set("mv-yt",e.detail.value?"1":"0")})
+
+new ResizeObserver(()=>layout()).observe(board)
+
 // iPadのSafariは、音声付きの動画を再生すると他の動画を止めることがある。無音の動画が止まっていたら再生し直す
 setInterval(()=>{
-  players.forEach((p,j)=>{
-    if(!p||!p.getPlayerState||j===audioIdx) return;
-    if(p.getPlayerState()===2){p.mute();p.playVideo();}
-  });
-},3000);
+  if(document.body.classList.contains("yt-controls")) return
+  for(const [id,t] of tiles){
+    const p=t.player; if(!p?.getPlayerState||id===audioId) continue
+    if(p.getPlayerState()===2){p.mute();p.playVideo()}
+  }
+},3000)
 
-$("playAll").onclick=()=>players.forEach((p,j)=>{if(p&&p.playVideo){if(j!==audioIdx)p.mute();p.playVideo();}});
-$("muteAll").onclick=()=>{players.forEach(p=>p&&p.mute&&p.mute());audioIdx=-1;document.querySelectorAll(".tile").forEach(t=>{t.classList.remove("audio");t.querySelector(".sound").textContent="この音声";});};
-// 段数が変わる列数だけを選択肢にする(4つなら1列・2列・4列。3列だと3つと1つの中途半端な並びになるので出さない)
-function colChoices(n){const out=[];let prev=0;for(let c=1;c<=n;c++){const r=Math.ceil(n/c);if(r!==prev){out.push(c);prev=r;}}return out;}
-$("layout").onclick=()=>{const ch=[0,...colChoices(ids.length)];layoutMode=ch[(ch.indexOf(layoutMode)+1)%ch.length]||0;if(ids.length)applyLayout();};
-addEventListener("resize",()=>{if(ids.length)applyLayout();});
-addEventListener("orientationchange",()=>setTimeout(()=>{if(ids.length)applyLayout();},300));
+const fromHash=(location.hash.match(/v=([\w,-]*)/)||[])[1]
+ids=(fromHash!==undefined?fromHash.split(","):store.get("mv-ids",PRESET.join(",")).split(",")).filter(x=>/^[\w-]{11}$/.test(x)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,MAX)
+layoutMode=store.get("mv-layout","0")
+if(store.get("mv-yt","0")==="1"){document.body.classList.add("yt-controls");customElements.whenDefined("ui-switch").then(()=>{$("ytSwitch").checked=true})}
 
-function openEdit(){ $("urls").value=ids.map(id=>"https://www.youtube.com/watch?v="+id).join("\n"); $("err").textContent=""; $("edit").hidden=false; }
-$("editBtn").onclick=openEdit;
-$("cancel").onclick=()=>{$("edit").hidden=true;};
-$("preset").onclick=()=>{$("urls").value=PRESET.map(p=>p[0]).join("\n");};
-$("form").onsubmit=e=>{
-  e.preventDefault();
-  const lines=$("urls").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
-  const bad=[], got=[];
-  lines.forEach(l=>{const id=parseId(l); if(id) got.push(id); else bad.push(l);});
-  if(bad.length){$("err").textContent="動画のIDが読み取れないURLがあります: "+bad.join("、")+"(チャンネルのURLではなく、動画や配信そのもののURLを入れてください)";return;}
-  ids=got.slice(0,9); if(!colChoices(ids.length).includes(layoutMode))layoutMode=0; save(); $("edit").hidden=true; build();
-};
-
-let stored=null; try{stored=localStorage.getItem("mv-ids")}catch(e){}
-ids=readHash()||(stored?stored.split(",").filter(Boolean):PRESET.map(p=>parseId(p[0])));
-
-window.onYouTubeIframeAPIReady=()=>{build(); save();};
-const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s);
+window.onYouTubeIframeAPIReady=()=>{ytReady=true;render()}
+const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s)
 </script>
 </body>
 </html>
