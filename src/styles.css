@@ -131,8 +131,6 @@ mv-list-item[data-index="7"]{order:7}
 mv-tile[data-index="8"]{--x:var(--x8);--y:var(--y8);--w:var(--w8);--h:var(--h8)}
 mv-list-item[data-index="8"]{order:8}
 
-/* 操作の結果を知らせるトースト */
-[data-slot="toast-region"]{position:fixed;left:0;right:0;bottom:calc(12px + env(safe-area-inset-bottom));z-index:20;display:grid;justify-items:center;pointer-events:none}
-[data-slot="toast"]{pointer-events:auto;max-width:min(520px,calc(100vw - 24px));padding:10px 16px;border-radius:12px;background:var(--ink);color:var(--bg);font-weight:700;box-shadow:0 8px 24px rgba(0,0,0,.5)}
-[data-slot="toast-description"]{font-weight:400;font-size:13px}
+/* 操作の結果を知らせるトースト。位置はUI SDKが決めるので、下の余白だけ足す */
+[data-slot="toast-region"][data-side="bottom"]{bottom:env(safe-area-inset-bottom)}
 #chatToggle button[aria-pressed="true"]{color:var(--accent)}
