@@ -33,6 +33,10 @@ function every(interval: `${number} seconds`, fn: () => void) {
   )
 }
 
+let lastInputWasKeyboard = false
+document.addEventListener("keydown", () => (lastInputWasKeyboard = true), true)
+document.addEventListener("pointerdown", () => (lastInputWasKeyboard = false), true)
+
 const PRESET = ["QNZjuyvcjw8", "3UtyipqHJbw", "6Lp2NYJDVsQ", "_oNm1mKvgac"]
 const MAX = 9
 const GAP = 4
@@ -336,9 +340,12 @@ function makeTile(id: string): Tile {
   })
   // キーボードで操作している間は出したままにし、フォーカスが外れたら4秒後に消す
   el.addEventListener("focusin", (e) => {
-    if ((e.target as Element).matches(":focus-visible")) {
+    // タップやクリックの後もフォーカスは残るので、直前の操作がキーボードのときだけ出したままにする
+    if (lastInputWasKeyboard && (e.target as Element).matches(":focus-visible")) {
       el.setAttribute("data-show", "")
       clearTimeout(hideTimer)
+    } else {
+      reveal()
     }
   })
   el.addEventListener("focusout", () => {
