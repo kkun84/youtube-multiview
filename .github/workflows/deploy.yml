@@ -35,6 +35,8 @@ jobs:
         run: pnpm typecheck
       - name: Unit tests
         run: pnpm test:unit
+      - name: Mutation tests
+        run: pnpm mutation
       - name: Browser tests
         run: pnpm test:ui
       - name: Size budget

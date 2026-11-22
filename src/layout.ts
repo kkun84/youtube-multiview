@@ -40,7 +40,8 @@ export function focusRects(n: number, W: number, H: number, gap: number): Rect[]
   const m = n - 1
   const plans: { area: number; rects: Rect[] }[] = []
   {
-    let sw = (W - gap * (m - 1)) / m
+    // 小さい枠が1つだけのときも、大きい枠と同じ大きさにならないよう幅の半分までにする
+    let sw = Math.min((W - gap * (m - 1)) / m, W / 2)
     let sh = sw / RATIO
     if (sh > H * 0.3) {
       sh = H * 0.3
@@ -59,7 +60,7 @@ export function focusRects(n: number, W: number, H: number, gap: number): Rect[]
     })
   }
   {
-    let sh = (H - gap * (m - 1)) / m
+    let sh = Math.min((H - gap * (m - 1)) / m, H / 2)
     let sw = sh * RATIO
     if (sw > W * 0.3) {
       sw = W * 0.3

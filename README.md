@@ -42,24 +42,40 @@ iOSとiPadOSのSafariでは、音声付きで再生できる動画は同時に1�
 
 ## 開発
 
-TypeScriptとViteで作っています。`main`ブランチにpushすると、GitHub Actionsがテストとビルドをして、GitHub Pagesに公開します。版番号はビルドした日時から自動で決まり、`version.json`として一緒に公開されます。
+TypeScriptとViteで作っています。`main`ブランチにpushすると、GitHub Actionsが検査とテストを全部通してからビルドし、GitHub Pagesに公開します。版番号はビルドした日時から自動で決まり、`version.json`として一緒に公開されます。
+
+開発環境はNixで揃えます。`nix develop`でNode.js、pnpm、Playwright用のブラウザが入ったシェルに入れます。CIも同じシェルの中で動きます。
 
 ```sh
-npm ci
-npm run dev        # 開発用のサーバー
-npm test           # テスト(並べ方の計算、URLの読み取り、ライブの遅れ)
-npm run typecheck  # 型チェック
-npm run build      # dist/ に出力
+nix develop
+pnpm install
+pnpm dev          # 開発用のサーバー
+pnpm check        # 下の検査とテストを全部実行
+pnpm lint         # oxlint、oxfmt、fallow、markdownlint
+pnpm typecheck    # 型チェック(Effectの診断つき)
+pnpm test:unit    # 単体テスト(並べ方の計算、URLの読み取り、ライブの遅れ、版の確認)
+pnpm test:ui      # ブラウザのテスト(iPhone・iPad縦・iPad横の大きさで操作とアクセシビリティを検査)
+pnpm mutation     # 変異テスト(テストが不具合を見つけられるかを測る)
+pnpm budget       # 公開するファイルの大きさの上限を確認
+pnpm build        # dist/ に出力
 ```
+
+Nixを使わないときは、`package.json`の`packageManager`と同じ版のpnpmを入れ、`pnpm exec playwright install chromium`でブラウザを入れます。
+
+ブラウザのテストはYouTubeに接続しません。`test/support/fake-youtube.js`がYouTube IFrame Player APIの代わりをします。
 
 - `src/app.ts`: 画面の動き(動画の枠、一覧、ライブ、チャット、並べ替えの操作)
 - `src/layout.ts`: 並べ方の計算
 - `src/live-delay.ts`: ライブからの遅れの計算
 - `src/sortable.ts`: UI SDKで作った並べ替えの部品(動画の枠と一覧で共用)
 - `src/youtube-id.ts`: URLから動画IDを取り出す
-- `src/update.ts`: 新しい版の確認
+- `src/update.ts`、`src/version-check.ts`: 新しい版の確認
+- `src/youtube-api.ts`: YouTube IFrame Player APIの読み込み
+- `test/e2e/`: ブラウザのテスト
 
 ## 使っているもの
 
 - [YouTube IFrame Player API](https://developers.google.com/youtube/iframe_api_reference)
-- [UI SDK](https://ui-sdk.dev)(Vercel Labs、ベータ版。`package.json`で版を固定): ダイアログ、ツールバー、並び方の切り替え、入力欄などの部品と、並べ替えの動き(`createReorder`)
+- [UI SDK](https://ui-sdk.dev)(Vercel Labs、ベータ版。`package.json`で版を固定): ダイアログ、ツールバー、トグル、スライダー、トースト、並び方の切り替え、入力欄などの部品と、並べ替えの動き(`createReorder`)
+- [Effect](https://effect.website): 版の確認、YouTube APIの読み込み、定期的な処理
+- 検査とテスト: oxlint、oxfmt、fallow、@effect/tsgo、lefthook、markdownlint、Vitest、Playwright、axe-core、mutator
