@@ -516,17 +516,17 @@ function measureLive() {
 function toLive(t: Tile) {
   const p = t.player
   if (!p?.seekTo || !t.isLive) return
-  const target = liveTarget(p.getDuration(), p.getCurrentTime(), t.delay)
-  p.seekTo(target, true)
+  const before = p.getCurrentTime()
+  p.seekTo(liveTarget(p.getDuration(), before, t.delay), true)
   if (t.userPaused) setPaused(t, false)
   else p.playVideo()
   t.delay = 0
   t.behind = 0
   t.lastSample = null
   paint()
-  // 大きく前に戻されていたら、更新された配信の長さでもう一度合わせる
+  // 配信によっては配信の長さと再生位置の基準が違うので、移動先とは比べず、押す前より後ろに戻されたときだけ合わせ直す
   window.setTimeout(() => {
-    if (p.getCurrentTime() < target - 20) {
+    if (p.getCurrentTime() < before - 5) {
       p.seekTo(p.getDuration() - 2, true)
       t.lastSample = null
     }
