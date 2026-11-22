@@ -1,6 +1,6 @@
 import { announce } from "@ui-sdk/core"
 import { toast } from "@ui-sdk/web"
-import type { UiDialogElement, UiFieldElement, UiSegmentedControlElement, UiSelectElement, UiSwitchElement, UiToggleElement } from "@ui-sdk/web"
+import type { UiDialogElement, UiFieldElement, UiSegmentedControlElement, UiSelectElement, UiChangeEvent, UiSwitchElement, UiToggleElement } from "@ui-sdk/web"
 import { icons } from "./icons"
 import { arrange, colChoices, type LayoutMode } from "./layout"
 import { liveTarget, nextDelay, visibleDelay, type Sample } from "./live-delay"
@@ -13,6 +13,14 @@ import { isVideoId, parseVideoId } from "./youtube-id"
 
 // トーストの表示先
 ;(document.getElementById("toasts") as unknown as { toaster: typeof toast }).toaster = toast
+
+/** 人が押したときだけ呼ぶ(コードから pressed を変えたときは呼ばない) */
+function onPress(el: HTMLElement, fn: (pressed: boolean) => void) {
+  el.addEventListener("pressedchange", (e) => {
+    const { value, reason } = (e as UiChangeEvent<boolean, string>).detail
+    if (reason === "press") fn(value)
+  })
+}
 
 const PRESET = ["QNZjuyvcjw8", "3UtyipqHJbw", "6Lp2NYJDVsQ", "_oNm1mKvgac"]
 const MAX = 9
@@ -38,7 +46,7 @@ type Tile = {
   delay: number
   behind: number
   lastSample: Sample | null
-  ui: { play: HTMLButtonElement; sound: HTMLButtonElement; zoom: HTMLButtonElement; zoomIcon: HTMLElement; grip: HTMLButtonElement; hand: HTMLButtonElement; live: HTMLButtonElement; target: HTMLButtonElement; title: HTMLElement }
+  ui: { play: HTMLButtonElement; sound: HTMLButtonElement; zoom: HTMLButtonElement; soundT: UiToggleElement; zoomT: UiToggleElement; handT: UiToggleElement; zoomIcon: HTMLElement; grip: HTMLButtonElement; hand: HTMLButtonElement; live: HTMLButtonElement; target: HTMLButtonElement; title: HTMLElement }
 }
 
 /* ---------- 状態 ---------- */
@@ -129,10 +137,11 @@ function paint() {
     const big = layoutMode === "focus" && focusedId() === id
     const { ui } = t
     t.el.toggleAttribute("data-audio", on)
-    ui.sound.setAttribute("aria-pressed", String(on))
-    ui.sound.setAttribute("aria-label", on ? `${name}の音声を出しています` : `${name}の音声を出す`)
-    ui.zoom.setAttribute("aria-pressed", String(big))
-    ui.zoom.setAttribute("aria-label", big ? `${name}を元の大きさに戻す` : `${name}を大きく表示`)
+    // 押した状態はトグルが読み上げるので、名前は押す前後で変えない
+    ui.soundT.pressed = on
+    ui.sound.setAttribute("aria-label", `${name}の音声`)
+    ui.zoomT.pressed = big
+    ui.zoom.setAttribute("aria-label", `${name}を大きく表示`)
     ui.zoomIcon.innerHTML = big ? icons.shrink : icons.grow
     ui.grip.setAttribute("aria-label", `${name}を移動`)
     ui.hand.setAttribute("aria-label", `${name}をYouTubeで直接操作(広告のスキップなど)`)
@@ -205,10 +214,10 @@ function makeTile(id: string): Tile {
     <div class="direct" role="status"><span>YouTubeを操作中</span><button type="button" class="directEnd">終わる</button></div>
     <div class="controls">
       <button type="button" class="play"></button>
-      <button type="button" class="sound">${icons.sound}</button>
-      <button type="button" class="zoom"><span class="zi"></span></button>
+      <ui-toggle class="soundT"><button type="button" class="sound">${icons.sound}</button></ui-toggle>
+      <ui-toggle class="zoomT"><button type="button" class="zoom"><span class="zi"></span></button></ui-toggle>
       <mv-handle><button type="button" class="grip">${icons.grip}</button></mv-handle>
-      <button type="button" class="hand">${icons.hand}</button>
+      <ui-toggle class="handT"><button type="button" class="hand">${icons.hand}</button></ui-toggle>
     </div>`
   let hideTimer = 0
   const reveal = () => {
@@ -231,6 +240,9 @@ function makeTile(id: string): Tile {
       play: q(el, ".play"),
       sound: q(el, ".sound"),
       zoom: q(el, ".zoom"),
+      soundT: q(el, ".soundT"),
+      zoomT: q(el, ".zoomT"),
+      handT: q(el, ".handT"),
       zoomIcon: q(el, ".zi"),
       grip: q(el, ".grip"),
       hand: q(el, ".hand"),
@@ -240,12 +252,12 @@ function makeTile(id: string): Tile {
     },
   }
   const { ui } = t
-  ui.sound.addEventListener("click", () => setAudio(id))
+  onPress(ui.soundT, () => setAudio(id))
   ui.play.addEventListener("click", () => {
     setPaused(t, !t.userPaused)
     toast(`${nameOf(id)}を${t.userPaused ? "一時停止しました" : "再生しました"}`)
   })
-  ui.zoom.addEventListener("click", () => toggleFocus(id))
+  onPress(ui.zoomT, () => toggleFocus(id))
   ui.live.addEventListener("click", () => {
     toLive(t)
     toast(`${nameOf(id)}を最新の位置に合わせました`)
@@ -261,10 +273,10 @@ function makeTile(id: string): Tile {
   // 広告のスキップなどYouTube側のボタンを押せるよう、この動画だけ透明な面を外す
   const setDirect = (on: boolean) => {
     el.toggleAttribute("data-direct", on)
-    ui.hand.setAttribute("aria-pressed", String(on))
+    ui.handT.pressed = on
     toast(on ? `${nameOf(id)}をYouTubeで直接操作できます。広告のスキップなどを押したら「終わる」を押してください` : `${nameOf(id)}の直接操作を終えました`)
   }
-  ui.hand.addEventListener("click", () => setDirect(!el.hasAttribute("data-direct")))
+  onPress(ui.handT, setDirect)
   q(el, ".directEnd").addEventListener("click", () => {
     setDirect(false)
     ui.hand.focus({ preventScroll: true })
@@ -621,7 +633,7 @@ function setChat(open: boolean) {
   requestAnimationFrame(layout)
   storage.set("mv-chat", open ? "1" : "0")
 }
-$("chatToggle").addEventListener("pressedchange", (e) => setChat((e as CustomEvent<{ pressed: boolean }>).detail.pressed))
+onPress($("chatToggle"), setChat)
 $("chatClose").addEventListener("click", () => {
   setChat(false)
   $("chatBtn").focus()
