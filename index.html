@@ -195,7 +195,7 @@ mv-tile[data-ended] .ended{display:flex}
 import { definePrimitive, createParts, createChange, createReorder, reorderMessage, wrappedButton, announce } from "https://ui-sdk.dev/web@0.1.0-beta.13/core.js"
 
 // tools/bump-version.py が version.json と一緒に書き換える
-const APP_VERSION="2026.11.22-113826"
+const APP_VERSION="2026.11.22-113945"
 const PRESET=["QNZjuyvcjw8","3UtyipqHJbw","6Lp2NYJDVsQ","_oNm1mKvgac"]
 const MAX=9, FOCUS="focus"
 const $=id=>document.getElementById(id)
@@ -268,6 +268,9 @@ createParts(sortableBoard,{
   handle:{tag:"mv-list-handle",target:wrappedButton,display:"contents"},
 })
 
+let focusId=null
+// 大きく表示する動画。選ばれていないか消えていれば、音声を出している動画か先頭の動画にする
+const focusedId=()=>ids.includes(focusId)?focusId:(ids.includes(audioId)?audioId:ids[0])
 let ids=[], tiles=new Map(), audioId=null, layoutMode="0", ytReady=false, seq=0
 const store={
   get(k,d){try{const v=localStorage.getItem(k);return v===null?d:v}catch(e){return d}},
@@ -288,7 +291,7 @@ function parseId(s){
   return null
 }
 function persist(){
-  store.set("mv-ids",ids.join(",")); store.set("mv-layout",layoutMode)
+  store.set("mv-ids",ids.join(",")); store.set("mv-layout",layoutMode); store.set("mv-focus",focusId||"")
   history.replaceState(null,"","#v="+ids.join(","))
 }
 
@@ -319,7 +322,11 @@ function layout(){
   const n=ids.length; if(!n) return
   const W=board.clientWidth, H=board.clientHeight, g=4
   let rects
-  if(layoutMode===FOCUS) rects=focusRects(n,W,H,g)
+  if(layoutMode===FOCUS){
+    // 大きい枠は選んだ動画に、小さい枠は残りの動画に並び順のまま割り当てる
+    const [main,...small]=focusRects(n,W,H,g), big=focusedId()
+    rects=ids.map(id=>id===big?main:small.shift())
+  }
   else if(layoutMode!=="0") rects=gridRects(n,Number(layoutMode),W,H,g).rects
   else rects=colChoices(n).map(c=>gridRects(n,c,W,H,g)).sort((a,b)=>b.size-a.size)[0].rects
   rects.forEach((r,i)=>{
@@ -348,7 +355,7 @@ function paint(){
   $("playAll").querySelector(".pi").innerHTML=(all?ICON.play:ICON.pause).replace(/20/g,"18")
   $("playAllLabel").textContent=all?"全部を再生":"全部を一時停止"
   for(const [id,t] of tiles){
-    const name=nameOf(id), on=id===audioId, big=layoutMode===FOCUS&&ids[0]===id
+    const name=nameOf(id), on=id===audioId, big=layoutMode===FOCUS&&focusedId()===id
     t.el.toggleAttribute("data-audio",on)
     t.sound.setAttribute("aria-pressed",String(on))
     t.sound.setAttribute("aria-label",on?`${name}の音声を出しています`:`${name}の音声を出す`)
@@ -379,12 +386,10 @@ function setAudio(id){
   paint()
   announce(audioId?`${nameOf(audioId)}の音声を出しています`:"音声を消しました")
 }
+// 並び順は変えず、選んだ動画だけを大きい枠に入れる
 function toggleFocus(id){
-  if(layoutMode===FOCUS&&ids[0]===id){layoutMode="0"}
-  else{
-    if(ids[0]!==id) setOrder([id,...ids.filter(x=>x!==id)])
-    layoutMode=FOCUS
-  }
+  if(layoutMode===FOCUS&&focusedId()===id){layoutMode="0"}
+  else{focusId=id;layoutMode=FOCUS}
   renderLayoutChoices(); persist(); layout(); paint()
   announce(layoutMode===FOCUS?`${nameOf(id)}を大きく表示しました`:"元の並びに戻しました")
 }
@@ -677,6 +682,7 @@ setInterval(()=>{
 const fromHash=(location.hash.match(/v=([\w,-]*)/)||[])[1]
 ids=(fromHash!==undefined?fromHash.split(","):store.get("mv-ids",PRESET.join(",")).split(",")).filter(x=>/^[\w-]{11}$/.test(x)).filter((x,i,a)=>a.indexOf(x)===i).slice(0,MAX)
 layoutMode=store.get("mv-layout","0")
+focusId=store.get("mv-focus","")||null
 if(store.get("mv-yt","0")==="1"){document.body.classList.add("yt-controls");customElements.whenDefined("ui-switch").then(()=>{$("ytSwitch").checked=true})}
 
 /* ---------- 更新の確認 ---------- */
