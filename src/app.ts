@@ -9,6 +9,7 @@ import { storage } from "./storage"
 import { escapeHtml, formatDuration } from "./text"
 import { setupUpdates } from "./update"
 import { loadYouTubeApi } from "./youtube-api"
+import { Effect, Schedule } from "effect"
 import { isVideoId, parseVideoId } from "./youtube-id"
 
 // トーストの表示先
@@ -20,6 +21,16 @@ function onPress(el: HTMLElement, fn: (pressed: boolean) => void) {
     const { value, reason } = (e as UiChangeEvent<boolean, string>).detail
     if (reason === "press") fn(value)
   })
+}
+
+/** 一定の間隔でくり返す。1回の失敗でくり返しを止めない */
+function every(interval: `${number} seconds`, fn: () => void) {
+  Effect.runFork(
+    Effect.try(fn).pipe(
+      Effect.catch((e) => Effect.logWarning("定期処理に失敗しました", e)),
+      Effect.repeat(Schedule.spaced(interval)),
+    ),
+  )
 }
 
 const PRESET = ["QNZjuyvcjw8", "3UtyipqHJbw", "6Lp2NYJDVsQ", "_oNm1mKvgac"]
@@ -555,12 +566,14 @@ function toLive(t: Tile) {
   t.lastSample = null
   paint()
   // 配信によっては配信の長さと再生位置の基準が違うので、移動先とは比べず、押す前より後ろに戻されたときだけ合わせ直す
-  window.setTimeout(() => {
-    if (p.getCurrentTime() < before - 5) {
-      p.seekTo(p.getDuration() - 2, true)
-      t.lastSample = null
-    }
-  }, 4000)
+  Effect.runFork(
+    Effect.sync(() => {
+      if (p.getCurrentTime() < before - 5) {
+        p.seekTo(p.getDuration() - 2, true)
+        t.lastSample = null
+      }
+    }).pipe(Effect.delay("4 seconds")),
+  )
 }
 $("toLive").addEventListener("click", () => {
   // 遅れの計測は外れることがあるので、押されたらライブ配信を全部最新の位置へ送る
@@ -568,7 +581,7 @@ $("toLive").addEventListener("click", () => {
   for (const t of live) toLive(t)
   toast(live.length ? `${live.length}件のライブ配信を最新の位置に合わせました` : "ライブ配信中の動画がありません")
 })
-setInterval(measureLive, 2000)
+every("2 seconds", measureLive)
 
 /* ---------- タップで移動 ---------- */
 function startMove(id: string) {
@@ -675,7 +688,7 @@ $<UiSwitchElement>("ytSwitch").addEventListener("checkedchange", (e) => {
 new ResizeObserver(() => layout()).observe(board)
 
 // iPadのSafariは、音声付きの動画を再生すると他の動画を止めることがある。無音の動画が止まっていたら再生し直す
-setInterval(() => {
+every("3 seconds", () => {
   if (ytControls()) return
   for (const [id, t] of tiles) {
     const p = t.player
@@ -685,7 +698,7 @@ setInterval(() => {
       p.playVideo()
     }
   }
-}, 3000)
+})
 
 /* ---------- 起動 ---------- */
 export async function start() {
@@ -708,7 +721,20 @@ export async function start() {
     })
   }
   setupUpdates($("updatebar"), $("updateNow"), $("checkUpdate"), $("versionText"))
-  await loadYouTubeApi()
+  const loaded = await Effect.runPromise(
+    loadYouTubeApi.pipe(
+      Effect.as(true),
+      Effect.catchTag("YouTubeApiError", (e) =>
+        Effect.sync(() => {
+          toast.error(e.reason === "timeout" ? "YouTubeの読み込みに時間がかかっています" : "YouTubeを読み込めませんでした", {
+            description: "ネットワークを確かめて、ページを開き直してください",
+          })
+          return false
+        }),
+      ),
+    ),
+  )
+  if (!loaded) return
   ytReady = true
   render()
   if (storage.get("mv-chat", "0") === "1") setChat(true)

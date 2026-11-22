@@ -10,7 +10,8 @@
   },
   "dependencies": {
     "@ui-sdk/core": "0.1.0-beta.13",
-    "@ui-sdk/web": "0.1.0-beta.13"
+    "@ui-sdk/web": "0.1.0-beta.13",
+    "effect": "4.1.5"
   },
   "devDependencies": {
     "@types/youtube": "0.3.0",
