@@ -1,5 +1,5 @@
 import { expect, test } from "vitest"
-import { checkAddition, focusedId, MAX, movedTo, nameOf, parseIds, parseLayout, shifted } from "./lineup"
+import { checkAddition, focusedId, MAX, movedTo, nameOf, parseIds, parseLayout, shifted, watchUrl } from "./lineup"
 
 const id = (n: number) => `video${String(n).padStart(6, "0")}`
 
@@ -62,4 +62,8 @@ test("動画の名前は、タイトルが分かるまでは並び順の番号",
   expect(nameOf(state, "b")).toBe("動画2")
   state.titles.set("b", "決勝")
   expect(nameOf(state, "b")).toBe("決勝")
+})
+
+test("動画ページのURL", () => {
+  expect(watchUrl("abcDEF_-123")).toBe("https://www.youtube.com/watch?v=abcDEF_-123")
 })

@@ -35,6 +35,9 @@ export function parseLayout(value: string): LayoutMode {
 /** URLや保存した値から並べる動画を読む。読めないIDと重複を除き、上限までにする */
 export const parseIds = (value: string): string[] => [...new Set(value.split(",").filter((id) => isVideoId(id)))].slice(0, MAX)
 
+/** YouTubeの動画ページ。概要欄とコメントはここで見る(埋め込みプレーヤーからは取れない) */
+export const watchUrl = (id: string): string => `https://www.youtube.com/watch?v=${encodeURIComponent(id)}`
+
 /** 追加しようとしたURLを確かめる。追加できるなら動画ID、できないなら理由 */
 export function checkAddition(raw: string, ids: readonly string[]): { id: string } | { error: string } {
   if (!raw.trim()) return { error: "URLを入れてください。" }

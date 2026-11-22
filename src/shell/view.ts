@@ -77,6 +77,7 @@ function paintTile({ state }: App, id: string, t: Tile) {
   ui.seekThumb.setAttribute("aria-label", `${name}の再生位置`)
   ui.hand.setAttribute("aria-label", `${name}をYouTubeで直接操作(広告のスキップなど)`)
   ui.title.textContent = name
+  t.el.querySelector(".more")?.setAttribute("aria-label", `${name}の操作ボタンを出す`)
   ui.play.innerHTML = t.userPaused ? icons.play : icons.pause
   ui.play.setAttribute("aria-label", t.userPaused ? `${name}を再生` : `${name}を一時停止`)
   t.el.toggleAttribute("data-paused", t.userPaused)

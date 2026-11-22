@@ -162,3 +162,15 @@ test("小さい動画でも、操作ボタンは動画の枠の中に収まる",
     expect(r.y + r.height).toBeLessThanOrEqual(frame.y + frame.height + 0.5)
   }
 })
+
+test("YouTubeの操作パネルを使うときも、操作ボタンは4秒ほどで消え、右上のボタンで出せる", async ({ page }) => {
+  await openApp(page)
+  await page.locator("#openList").click()
+  await page.locator("#ytSwitch").click()
+  await page.keyboard.press("Escape")
+  const target = tile(page, first)
+  await expect(target.locator(".controls")).toHaveCSS("opacity", "0", { timeout: 8000 })
+  await target.locator(".more").click()
+  await expect(target.locator(".controls")).toHaveCSS("opacity", "1")
+  await expect(target.locator(".controls")).toHaveCSS("opacity", "0", { timeout: 8000 })
+})

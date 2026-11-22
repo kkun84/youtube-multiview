@@ -15,6 +15,7 @@ const markup = (
     <button type="button" class="live"></button>
     <div class="ended"><p>配信が終わったか、再生できなくなりました。</p><button type="button" data-variant="solid" class="endremove">一覧から外す</button></div>
     <button type="button" class="target"></button>
+    <button type="button" class="more">${icons.more}</button>
     <div class="direct" role="status"><span>YouTubeを操作中</span><button type="button" class="directEnd">終わる</button></div>
     <ui-slider class="seek" min="0" max="1" step="1"><ui-slider-control><ui-slider-track><ui-slider-indicator></ui-slider-indicator><ui-slider-thumb></ui-slider-thumb></ui-slider-track></ui-slider-control></ui-slider>
     <div class="controls">
@@ -163,7 +164,8 @@ const tapGestures = (app: App, t: Tile) => {
         t.reveal()
       }
     }),
-    listen(q(t.el, ".controls"), "pointerdown", () => t.reveal())
+    listen(q(t.el, ".controls"), "pointerdown", () => t.reveal()),
+    listen(q(t.el, ".more"), "click", () => t.reveal())
   ])
 }
 

@@ -318,8 +318,7 @@ mv-tile .controls [data-slot="toolbar"] {
   gap: 6px;
 }
 mv-tile[data-show] .controls,
-mv-tile[data-grabbed] .controls,
-body.yt-controls mv-tile .controls {
+mv-tile[data-grabbed] .controls {
   opacity: 1;
   pointer-events: auto;
 }
@@ -792,8 +791,7 @@ mv-tile .seek {
 mv-tile[data-seekable] .seek {
   display: block;
 }
-mv-tile[data-show] .seek,
-body.yt-controls mv-tile .seek {
+mv-tile[data-show] .seek {
   opacity: 1;
   pointer-events: auto;
 }
@@ -853,4 +851,24 @@ mv-tile .controls button[hidden] {
   mv-tile .seek {
     bottom: 44px;
   }
+}
+
+/* YouTubeの操作パネルを使うときは、動画をタップしてもこちらに届かない。右上の小さなボタンで操作ボタンを出す */
+mv-tile .more {
+  display: none;
+}
+body.yt-controls mv-tile .more {
+  position: absolute;
+  right: 6px;
+  top: 6px;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 999px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(13, 15, 20, 0.6);
+  color: var(--ink);
 }

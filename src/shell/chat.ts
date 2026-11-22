@@ -2,7 +2,7 @@ import type { UiSelectElement, UiToggleElement } from "@ui-sdk/web"
 import { Effect, type Scope } from "effect"
 import { escapeHtml } from "../core/text"
 import { byId, listen, onPress, q, whenDefined } from "./dom"
-import { nameOf } from "../core/lineup"
+import { nameOf, watchUrl } from "../core/lineup"
 import { type App } from "./model"
 
 function loadChat({ state }: App) {
@@ -13,6 +13,9 @@ function loadChat({ state }: App) {
   const open = byId<HTMLAnchorElement>("chatOpen")
   open.href = `https://www.youtube.com/live_chat?v=${state.chatId}`
   open.setAttribute("aria-label", `${nameOf(state, state.chatId)}のチャットをYouTubeで開く`)
+  const watch = byId<HTMLAnchorElement>("watchOpen")
+  watch.href = watchUrl(state.chatId)
+  watch.setAttribute("aria-label", `${nameOf(state, state.chatId)}の概要欄とコメントをYouTubeで開く`)
 }
 
 /** チャットを開いているときだけ、選べる配信と表示する配信を今の並びに合わせる */

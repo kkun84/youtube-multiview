@@ -63,3 +63,14 @@ test("アクセシビリティの問題がない", async ({ page }) => {
   const dialog = await new AxeBuilder({ page }).exclude("mv-tile iframe").exclude("#chatFrame").analyze()
   expect(dialog.violations.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`)).toEqual([])
 })
+
+test("一覧とチャット欄から、概要欄とコメントを見るためにYouTubeの動画ページを開ける", async ({ page }) => {
+  await openApp(page)
+  await page.locator("#chatBtn").click()
+  await expect(page.locator("#watchOpen")).toHaveAttribute("href", `https://www.youtube.com/watch?v=${first}`)
+  await expect(page.locator("#watchOpen")).toHaveAttribute("target", "_blank")
+  await openList(page)
+  const link = page.locator(`mv-list-item[value="${second}"] .open`)
+  await expect(link).toHaveAttribute("href", `https://www.youtube.com/watch?v=${second}`)
+  await expect(link).toHaveAccessibleName(/概要欄とコメント/)
+})

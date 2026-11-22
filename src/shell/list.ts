@@ -3,7 +3,7 @@ import type { UiDialogElement, UiFieldElement } from "@ui-sdk/web"
 import { Effect, type Scope } from "effect"
 import { icons } from "./icons"
 import { byId, listen, q, whenDefined } from "./dom"
-import { checkAddition, MAX, nameOf, PRESET, shifted } from "../core/lineup"
+import { checkAddition, MAX, nameOf, PRESET, shifted, watchUrl } from "../core/lineup"
 import { type App } from "./model"
 
 export const openDialog = (): void => {
@@ -41,6 +41,7 @@ function rebuild(app: App) {
       <span class="name"></span><span class="badge" hidden>音声オン</span>
       <button type="button" class="ic up">${icons.up}</button>
       <button type="button" class="ic down">${icons.down}</button>
+      <a class="ic open" href="${watchUrl(id)}" target="_blank" rel="noopener">${icons.external}</a>
       <ui-button><button type="button" class="del">削除</button></ui-button>
     </mv-list-item>`
     )
@@ -83,6 +84,7 @@ export function renderList(app: App): void {
     up.setAttribute("aria-disabled", String(i === 0))
     down.setAttribute("aria-disabled", String(i === state.ids.length - 1))
     q(item, ".del").setAttribute("aria-label", `${name}を削除`)
+    q(item, ".open").setAttribute("aria-label", `${name}の概要欄とコメントをYouTubeで開く`)
   }
   byId("emptyList").hidden = state.ids.length > 0
   const input = byId<HTMLInputElement>("addInput")
