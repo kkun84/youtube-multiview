@@ -40,9 +40,26 @@ iOSとiPadOSのSafariでは、音声付きで再生できる動画は同時に1�
 
 ホーム画面に追加したアプリは閉じられにくく、古い版のまま表示されることがあります。そのため、アプリを前面に戻したときと5分おきに新しい版を確かめ、あれば上に「更新する」ボタンを出します。「動画の追加・削除」の中の「最新版を確認」からも確かめられます。
 
-公開するときは、先に `python3 tools/bump-version.py` で版番号を更新します。
+## 開発
+
+TypeScriptとViteで作っています。`main`ブランチにpushすると、GitHub Actionsがテストとビルドをして、GitHub Pagesに公開します。版番号はビルドした日時から自動で決まり、`version.json`として一緒に公開されます。
+
+```sh
+npm ci
+npm run dev        # 開発用のサーバー
+npm test           # テスト(並べ方の計算、URLの読み取り、ライブの遅れ)
+npm run typecheck  # 型チェック
+npm run build      # dist/ に出力
+```
+
+- `src/app.ts`: 画面の動き(動画の枠、一覧、ライブ、チャット、並べ替えの操作)
+- `src/layout.ts`: 並べ方の計算
+- `src/live-delay.ts`: ライブからの遅れの計算
+- `src/sortable.ts`: UI SDKで作った並べ替えの部品(動画の枠と一覧で共用)
+- `src/youtube-id.ts`: URLから動画IDを取り出す
+- `src/update.ts`: 新しい版の確認
 
 ## 使っているもの
 
 - [YouTube IFrame Player API](https://developers.google.com/youtube/iframe_api_reference)
-- [UI SDK](https://ui-sdk.dev)(Vercel Labs、ベータ版): ダイアログ、ツールバー、並び方の切り替え、入力欄などの部品と、並べ替えの動き(`createReorder`)
+- [UI SDK](https://ui-sdk.dev)(Vercel Labs、ベータ版。`package.json`で版を固定): ダイアログ、ツールバー、並び方の切り替え、入力欄などの部品と、並べ替えの動き(`createReorder`)
