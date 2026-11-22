@@ -195,7 +195,7 @@ mv-tile[data-ended] .ended{display:flex}
 import { definePrimitive, createParts, createChange, createReorder, reorderMessage, wrappedButton, announce } from "https://ui-sdk.dev/web@0.1.0-beta.13/core.js"
 
 // tools/bump-version.py が version.json と一緒に書き換える
-const APP_VERSION="2026.11.22-113529"
+const APP_VERSION="2026.11.22-113826"
 const PRESET=["QNZjuyvcjw8","3UtyipqHJbw","6Lp2NYJDVsQ","_oNm1mKvgac"]
 const MAX=9, FOCUS="focus"
 const $=id=>document.getElementById(id)
@@ -554,22 +554,24 @@ $("addForm").addEventListener("submit",e=>{
 $("preset").addEventListener("click",()=>{ids=[...PRESET];render();announce("篝火#16の4配信に戻しました")})
 $("openList").addEventListener("click",()=>{$("dialog").open=true})
 /* ---------- ライブ ---------- */
-// ライブ配信では getDuration() と getCurrentTime() の差に、配信ごとに一定のずれが含まれる(ライブに追いついていても数十分になることがある)。
-// そこで、これまでで一番小さかった差をライブの位置とみなし、そこからの差を遅れとする
-const BEHIND=20
+// ライブ配信の getDuration() と getCurrentTime() の差は、追いついていても数十秒単位で揺れるので遅れの計算に使えない。
+// 代わりに、経過した時間に対して再生位置がどれだけ進まなかったか(一時停止・読み込み待ち・巻き戻し)を足し合わせて遅れとする
+const BEHIND=15
 function measureLive(){
   let changed=false
+  const now=performance.now()/1000
   for(const t of tiles.values()){
-    const p=t.player; if(!p?.getDuration) continue
-    const d=p.getVideoData?.()
-    t.isLive=!!d?.isLive
-    let shown=0
-    if(t.isLive&&p.getDuration()>0){
-      const gap=p.getDuration()-p.getCurrentTime()
-      if(t.edgeGap===undefined||gap<t.edgeGap) t.edgeGap=gap
-      const behind=gap-t.edgeGap
-      shown=behind>BEHIND?behind:0
+    const p=t.player; if(!p?.getCurrentTime) continue
+    t.isLive=!!p.getVideoData?.()?.isLive
+    const ct=p.getCurrentTime()
+    if(t.isLive&&t.lastSample&&!t.skipSample){
+      const expected=t.lastSample.ct+(now-t.lastSample.now)*(p.getPlaybackRate?.()||1)
+      const drift=expected-ct
+      if(Math.abs(drift)>1.5) t.delay=Math.max(0,(t.delay||0)+drift)
     }
+    t.skipSample=false
+    t.lastSample={ct,now}
+    const shown=t.isLive&&(t.delay||0)>BEHIND?t.delay:0
     if(Math.abs(shown-t.behind)>=1||(shown===0)!==(t.behind===0)){t.behind=shown;changed=true}
   }
   const any=[...tiles.values()].some(t=>t.behind>0)
@@ -578,9 +580,9 @@ function measureLive(){
 }
 function toLive(t){
   const p=t.player; if(!p?.seekTo||!t.isLive) return
-  p.seekTo(p.getDuration(),true)
+  p.seekTo(p.getDuration()+60,true)
   if(t.userPaused) setPaused(t,false); else p.playVideo()
-  t.behind=0; paint()
+  t.delay=0; t.behind=0; t.skipSample=true; t.lastSample=null; paint()
 }
 $("toLive").addEventListener("click",()=>{
   if($("toLive").getAttribute("aria-disabled")==="true"){announce("遅れている配信はありません");return}
