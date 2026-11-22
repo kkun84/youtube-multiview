@@ -49,7 +49,7 @@ button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   .bar button{width:40px;padding:0;justify-content:center}
   .seg{margin-left:0;flex:1;min-width:0;overflow-x:auto;scrollbar-width:none}
   .seg::-webkit-scrollbar{display:none}
-  .seg [data-slot="segmented-control-item"]{padding:0 10px}
+  .seg [data-slot="segmented-control-item"]{padding:0 8px;font-size:12.5px}
 }
 
 mv-board{flex:1;min-height:0;position:relative;display:block;margin:0 var(--gap) var(--gap)}
@@ -341,7 +341,8 @@ function makeTile(id){
   board.appendChild(el)
   const showTitle=()=>{const d=t.player?.getVideoData?.();if(d?.title&&titles.get(id)!==d.title){titles.set(id,d.title);paint();renderList()}}
   t.player=new YT.Player(key,{videoId:id,
-    playerVars:{autoplay:1,mute:1,playsinline:1,rel:0},
+    // YouTube側の操作表示(左上のタイトルや下の操作バー)は、操作パネルを使う設定のときだけ出す
+    playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,iv_load_policy:3,controls:ytControls()?1:0,disablekb:ytControls()?0:1},
     events:{onReady:e=>{e.target.mute();e.target.playVideo();showTitle()},onStateChange:showTitle}})
   return t
 }
@@ -396,7 +397,13 @@ $("preset").addEventListener("click",()=>{ids=[...PRESET];render();announce("篝
 $("openList").addEventListener("click",()=>{$("dialog").open=true})
 $("playAll").addEventListener("click",()=>{for(const [id,t] of tiles){const p=t.player;if(p?.playVideo){if(id!==audioId)p.mute();p.playVideo()}}})
 $("muteAll").addEventListener("click",()=>{for(const t of tiles.values())t.player?.mute?.();audioId=null;paint();renderList();announce("音声を消しました")})
-$("ytSwitch").addEventListener("checkedchange",e=>{document.body.classList.toggle("yt-controls",e.detail.value);store.set("mv-yt",e.detail.value?"1":"0")})
+const ytControls=()=>document.body.classList.contains("yt-controls")
+$("ytSwitch").addEventListener("checkedchange",e=>{
+  document.body.classList.toggle("yt-controls",e.detail.value);store.set("mv-yt",e.detail.value?"1":"0")
+  // 操作表示の有無はプレーヤーを作るときにしか決められないので、作り直す
+  const keep=[...ids]; ids=[]; render(); ids=keep; render()
+  announce(e.detail.value?"YouTubeの操作パネルを表示しました":"YouTubeの操作パネルを隠しました")
+})
 
 new ResizeObserver(()=>layout()).observe(board)
 
