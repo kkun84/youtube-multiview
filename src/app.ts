@@ -1,5 +1,6 @@
 import { announce } from "@ui-sdk/core"
-import type { UiDialogElement, UiFieldElement, UiSegmentedControlElement, UiSelectElement, UiSwitchElement } from "@ui-sdk/web"
+import { toast } from "@ui-sdk/web"
+import type { UiDialogElement, UiFieldElement, UiSegmentedControlElement, UiSelectElement, UiSwitchElement, UiToggleElement } from "@ui-sdk/web"
 import { icons } from "./icons"
 import { arrange, colChoices, type LayoutMode } from "./layout"
 import { liveTarget, nextDelay, visibleDelay, type Sample } from "./live-delay"
@@ -9,6 +10,9 @@ import { escapeHtml, formatDuration } from "./text"
 import { setupUpdates } from "./update"
 import { loadYouTubeApi } from "./youtube-api"
 import { isVideoId, parseVideoId } from "./youtube-id"
+
+// トーストの表示先
+;(document.getElementById("toasts") as unknown as { toaster: typeof toast }).toaster = toast
 
 const PRESET = ["QNZjuyvcjw8", "3UtyipqHJbw", "6Lp2NYJDVsQ", "_oNm1mKvgac"]
 const MAX = 9
@@ -159,7 +163,7 @@ function setAudio(id: string) {
   }
   paint()
   renderList()
-  announce(audioId ? `${nameOf(audioId)}の音声を出しています` : "音声を消しました")
+  toast(audioId ? `${nameOf(audioId)}の音声を出しています` : "音声を消しました")
 }
 
 function setPaused(t: Tile, paused: boolean) {
@@ -186,7 +190,7 @@ function toggleFocus(id: string) {
   persist()
   layout()
   paint()
-  announce(layoutMode === "focus" ? `${nameOf(id)}を大きく表示しました` : "元の並びに戻しました")
+  toast(layoutMode === "focus" ? `${nameOf(id)}を大きく表示しました` : "元の並びに戻しました")
 }
 
 /* ---------- 動画の枠 ---------- */
@@ -239,26 +243,26 @@ function makeTile(id: string): Tile {
   ui.sound.addEventListener("click", () => setAudio(id))
   ui.play.addEventListener("click", () => {
     setPaused(t, !t.userPaused)
-    announce(`${nameOf(id)}を${t.userPaused ? "一時停止しました" : "再生しました"}`)
+    toast(`${nameOf(id)}を${t.userPaused ? "一時停止しました" : "再生しました"}`)
   })
   ui.zoom.addEventListener("click", () => toggleFocus(id))
   ui.live.addEventListener("click", () => {
     toLive(t)
-    announce(`${nameOf(id)}を最新の位置に合わせました`)
+    toast(`${nameOf(id)}を最新の位置に合わせました`)
   })
   ui.target.addEventListener("click", () => finishMove(id))
   q(el, ".endremove").addEventListener("click", () => {
     const name = nameOf(id)
     ids = ids.filter((x) => x !== id)
     render()
-    announce(`${name}を一覧から外しました`)
+    toast(`${name}を一覧から外しました`)
   })
 
   // 広告のスキップなどYouTube側のボタンを押せるよう、この動画だけ透明な面を外す
   const setDirect = (on: boolean) => {
     el.toggleAttribute("data-direct", on)
     ui.hand.setAttribute("aria-pressed", String(on))
-    announce(on ? `${nameOf(id)}をYouTubeで直接操作できます。広告のスキップなどを押したら「終わる」を押してください` : `${nameOf(id)}の直接操作を終えました`)
+    toast(on ? `${nameOf(id)}をYouTubeで直接操作できます。広告のスキップなどを押したら「終わる」を押してください` : `${nameOf(id)}の直接操作を終えました`)
   }
   ui.hand.addEventListener("click", () => setDirect(!el.hasAttribute("data-direct")))
   q(el, ".directEnd").addEventListener("click", () => {
@@ -439,7 +443,7 @@ function renderList() {
         const i = ids.indexOf(id)
         ids = ids.filter((x) => x !== id)
         render()
-        announce(`${name}を削除しました`)
+        toast(`${name}を削除しました`)
         const rest = items().sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index))
         ;(rest[Math.min(i, rest.length - 1)]?.querySelector<HTMLElement>(".del") ?? $("addInput")).focus()
       })
@@ -497,12 +501,12 @@ $("addForm").addEventListener("submit", (e) => {
   ids = [...ids, id]
   input.value = ""
   render()
-  announce("動画を追加しました")
+  toast("動画を追加しました")
 })
 $("preset").addEventListener("click", () => {
   ids = [...PRESET]
   render()
-  announce("篝火#16の4配信に戻しました")
+  toast("篝火#16の4配信に戻しました")
 })
 $("openList").addEventListener("click", openDialog)
 
@@ -524,7 +528,7 @@ function measureLive() {
     }
   }
   const any = [...tiles.values()].some((t) => t.behind > 0)
-  $("toLive").setAttribute("aria-disabled", String(!any))
+  $("toLive").toggleAttribute("data-behind", any)
   if (changed) paint()
 }
 function toLive(t: Tile) {
@@ -547,12 +551,10 @@ function toLive(t: Tile) {
   }, 4000)
 }
 $("toLive").addEventListener("click", () => {
-  if ($("toLive").getAttribute("aria-disabled") === "true") {
-    announce("遅れている配信はありません")
-    return
-  }
-  for (const t of tiles.values()) if (t.behind > 0) toLive(t)
-  announce("遅れていた配信を最新の位置に合わせました")
+  // 遅れの計測は外れることがあるので、押されたらライブ配信を全部最新の位置へ送る
+  const live = [...tiles.values()].filter((t) => t.isLive)
+  for (const t of live) toLive(t)
+  toast(live.length ? `${live.length}件のライブ配信を最新の位置に合わせました` : "ライブ配信中の動画がありません")
 })
 setInterval(measureLive, 2000)
 
@@ -573,7 +575,7 @@ function cancelMove(message = "移動をやめました") {
   $("movebar").hidden = true
   paint()
   tiles.get(src)?.ui.grip.focus({ preventScroll: true })
-  if (message) announce(message)
+  if (message) toast(message)
 }
 function finishMove(targetId: string) {
   const src = moveSource
@@ -613,13 +615,13 @@ function loadChat() {
 }
 function setChat(open: boolean) {
   $("chat").hidden = !open
-  $("chatBtn").setAttribute("aria-pressed", String(open))
+  $<UiToggleElement>("chatToggle").pressed = open
   if (open) renderChatChoices()
   else $("chatFrame").removeAttribute("src")
   requestAnimationFrame(layout)
   storage.set("mv-chat", open ? "1" : "0")
 }
-$("chatBtn").addEventListener("click", () => setChat($("chat").hasAttribute("hidden")))
+$("chatToggle").addEventListener("pressedchange", (e) => setChat((e as CustomEvent<{ pressed: boolean }>).detail.pressed))
 $("chatClose").addEventListener("click", () => {
   setChat(false)
   $("chatBtn").focus()
@@ -636,14 +638,14 @@ $("chatSelect").addEventListener("valuechange", (e) => {
 $("playAll").addEventListener("click", () => {
   const resume = allPaused()
   for (const t of tiles.values()) setPaused(t, !resume)
-  announce(resume ? "全部の動画を再生しました" : "全部の動画を一時停止しました")
+  toast(resume ? "全部の動画を再生しました" : "全部の動画を一時停止しました")
 })
 $("muteAll").addEventListener("click", () => {
   for (const t of tiles.values()) t.player?.mute?.()
   audioId = null
   paint()
   renderList()
-  announce("音声を消しました")
+  toast("音声を消しました")
 })
 $<UiSwitchElement>("ytSwitch").addEventListener("checkedchange", (e) => {
   const on = Boolean((e as CustomEvent<{ value: boolean }>).detail.value)
@@ -655,7 +657,7 @@ $<UiSwitchElement>("ytSwitch").addEventListener("checkedchange", (e) => {
   render()
   ids = keep
   render()
-  announce(on ? "YouTubeの操作パネルを表示しました" : "YouTubeの操作パネルを隠しました")
+  toast(on ? "YouTubeの操作パネルを表示しました" : "YouTubeの操作パネルを隠しました")
 })
 
 new ResizeObserver(() => layout()).observe(board)

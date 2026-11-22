@@ -18,8 +18,8 @@
   <ui-toolbar aria-label="操作">
     <ui-toolbar-button><button id="openList"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h12M3 12h12M3 18h8M19 15v6M16 18h6"/></svg><span class="lbl">動画の追加・削除</span></button></ui-toolbar-button>
     <ui-toolbar-button><button id="playAll"><span class="pi"></span><span class="lbl" id="playAllLabel">全部を一時停止</span></button></ui-toolbar-button>
-    <ui-toolbar-button><button id="toLive" aria-disabled="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg><span class="lbl">遅れている配信を最新へ</span></button></ui-toolbar-button>
-    <ui-toolbar-button><button id="chatBtn" aria-pressed="false" aria-controls="chat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="lbl">ライブチャット</span></button></ui-toolbar-button>
+    <ui-toolbar-button><button id="toLive"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg><span class="lbl">全部を最新の位置へ</span></button></ui-toolbar-button>
+    <ui-toggle id="chatToggle"><button id="chatBtn" aria-controls="chat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="lbl">ライブチャット</span></button></ui-toggle>
     <ui-toolbar-button><button id="muteAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6m0-6-5 6"/></svg><span class="lbl">全部を消音</span></button></ui-toolbar-button>
   </ui-toolbar>
   <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
@@ -76,5 +76,13 @@
   </ui-dialog-content>
 </ui-dialog>
 
+<ui-toast-region id="toasts" side="bottom" align="center">
+  <template>
+    <ui-toast>
+      <ui-toast-title></ui-toast-title>
+      <ui-toast-description></ui-toast-description>
+    </ui-toast>
+  </template>
+</ui-toast-region>
 </body>
 </html>
