@@ -104,7 +104,19 @@ function setOrder(next: string[]) {
 
 /* ---------- 並べ方 ---------- */
 function layout() {
-  const rects = arrange(ids, layoutMode, focusedId(), board.clientWidth, board.clientHeight, GAP)
+  // 縦長の画面でチャットを開いているときは、動画に必要な高さだけを使い、残りをチャットに渡す
+  const stage = board.parentElement!
+  const stacked = !$("chat").hasAttribute("hidden") && window.matchMedia("(orientation:portrait)").matches
+  const height = stacked ? Math.round(stage.clientHeight * 0.58) : board.clientHeight
+  let rects = arrange(ids, layoutMode, focusedId(), board.clientWidth, height, GAP)
+  if (stacked && rects.length) {
+    const top = Math.min(...rects.map((r) => r.y))
+    const bottom = Math.max(...rects.map((r) => r.y + r.h))
+    rects = rects.map((r) => ({ ...r, y: r.y - top }))
+    board.style.flex = `0 0 ${Math.ceil(bottom - top)}px`
+  } else {
+    board.style.flex = ""
+  }
   rects.forEach((r, i) => {
     board.style.setProperty(`--x${i}`, `${r.x}px`)
     board.style.setProperty(`--y${i}`, `${r.y}px`)
@@ -686,7 +698,9 @@ $<UiSwitchElement>("ytSwitch").addEventListener("checkedchange", (e) => {
   announce(on ? "YouTubeの操作パネルを表示しました" : "YouTubeの操作パネルを隠しました")
 })
 
-new ResizeObserver(() => layout()).observe(board)
+const resizes = new ResizeObserver(() => layout())
+resizes.observe(board)
+resizes.observe(board.parentElement!)
 
 // iPadのSafariは、音声付きの動画を再生すると他の動画を止めることがある。無音の動画が止まっていたら再生し直す
 every("3 seconds", () => {
