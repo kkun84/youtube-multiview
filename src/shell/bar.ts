@@ -3,7 +3,7 @@ import { toast, type UiSwitchElement } from "@ui-sdk/web"
 import { Effect, type Scope } from "effect"
 import { watchUpdates } from "./update"
 import { byId, listen, whenDefined } from "./dom"
-import { nameOf, parseIds, parseLayout, PRESET } from "../core/lineup"
+import { nameOf, parseIds, parseLayout } from "../core/lineup"
 import { allPaused, type App } from "./model"
 import { wireMove } from "./move"
 import { allToLive } from "./playback"
@@ -13,7 +13,7 @@ export const restore = (app: App) =>
   Effect.sync(() => {
     const { state } = app
     const fromHash = /v=([\w,-]*)/.exec(location.hash)?.[1]
-    state.ids = parseIds(fromHash ?? app.load("mv-ids", PRESET.join(",")))
+    state.ids = parseIds(fromHash ?? app.load("mv-ids", ""))
     state.layoutMode = parseLayout(app.load("mv-layout", "auto"))
     state.focusId = app.load("mv-focus", "") || null
     whenDefined("mv-board", () => {

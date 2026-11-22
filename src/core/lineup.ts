@@ -1,7 +1,6 @@
 import type { LayoutMode } from "./layout"
 import { isVideoId, parseVideoId } from "./youtube-id"
 
-export const PRESET = ["QNZjuyvcjw8", "3UtyipqHJbw", "6Lp2NYJDVsQ", "_oNm1mKvgac"] as const
 export const MAX = 9
 export const GAP = 4
 

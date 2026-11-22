@@ -3,7 +3,7 @@ import type { UiDialogElement, UiFieldElement } from "@ui-sdk/web"
 import { Effect, type Scope } from "effect"
 import { icons } from "./icons"
 import { byId, listen, q, whenDefined } from "./dom"
-import { checkAddition, MAX, nameOf, PRESET, shifted, watchUrl } from "../core/lineup"
+import { checkAddition, MAX, nameOf, shifted, watchUrl } from "../core/lineup"
 import { type App } from "./model"
 
 export const openDialog = (): void => {
@@ -122,11 +122,6 @@ export const wireList = (app: App): Effect.Effect<void, never, Scope.Scope> =>
     listen(byId("addForm"), "submit", (e) => {
       e.preventDefault()
       add(app)
-    }),
-    listen(byId("preset"), "click", () => {
-      app.state.ids = [...PRESET]
-      app.render()
-      announce("篝火#16の4配信に戻しました")
     }),
     listen(byId("openList"), "click", () => app.openDialog())
   ]).pipe(Effect.asVoid)

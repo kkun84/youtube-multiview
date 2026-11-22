@@ -74,3 +74,15 @@ test("一覧とチャット欄から、概要欄とコメントを見るため�
   await expect(link).toHaveAttribute("href", `https://www.youtube.com/watch?v=${second}`)
   await expect(link).toHaveAccessibleName(/概要欄とコメント/)
 })
+
+test("初めて開くと動画は並んでおらず、追加をすすめる", async ({ page }) => {
+  await page.route("https://www.youtube.com/iframe_api", (route) =>
+    route.fulfill({
+      contentType: "text/javascript",
+      body: "window.YT={Player:class{},PlayerState:{},get:()=>undefined};window.onYouTubeIframeAPIReady?.()"
+    })
+  )
+  await page.goto("/")
+  await expect(page.locator("mv-tile")).toHaveCount(0)
+  await expect(page.getByRole("button", { name: "動画を追加する" })).toBeVisible()
+})
