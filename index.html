@@ -195,7 +195,7 @@ mv-tile[data-ended] .ended{display:flex}
 import { definePrimitive, createParts, createChange, createReorder, reorderMessage, wrappedButton, announce } from "https://ui-sdk.dev/web@0.1.0-beta.13/core.js"
 
 // tools/bump-version.py が version.json と一緒に書き換える
-const APP_VERSION="2026.11.22-113233"
+const APP_VERSION="2026.11.22-113418"
 const PRESET=["QNZjuyvcjw8","3UtyipqHJbw","6Lp2NYJDVsQ","_oNm1mKvgac"]
 const MAX=9, FOCUS="focus"
 const $=id=>document.getElementById(id)
@@ -551,7 +551,8 @@ $("addForm").addEventListener("submit",e=>{
 $("preset").addEventListener("click",()=>{ids=[...PRESET];render();announce("篝火#16の4配信に戻しました")})
 $("openList").addEventListener("click",()=>{$("dialog").open=true})
 /* ---------- ライブ ---------- */
-// ライブ配信では getDuration() が配信開始からの経過時間になるので、それと再生位置の差を遅れとみなす
+// ライブ配信では getDuration() と getCurrentTime() の差に、配信ごとに一定のずれが含まれる(ライブに追いついていても数十分になることがある)。
+// そこで、これまでで一番小さかった差をライブの位置とみなし、そこからの差を遅れとする
 const BEHIND=20
 function measureLive(){
   let changed=false
@@ -559,8 +560,13 @@ function measureLive(){
     const p=t.player; if(!p?.getDuration) continue
     const d=p.getVideoData?.()
     t.isLive=!!d?.isLive
-    const behind=t.isLive?Math.max(0,p.getDuration()-p.getCurrentTime()):0
-    const shown=behind>BEHIND?behind:0
+    let shown=0
+    if(t.isLive&&p.getDuration()>0){
+      const gap=p.getDuration()-p.getCurrentTime()
+      if(t.edgeGap===undefined||gap<t.edgeGap) t.edgeGap=gap
+      const behind=gap-t.edgeGap
+      shown=behind>BEHIND?behind:0
+    }
     if(Math.abs(shown-t.behind)>=1||(shown===0)!==(t.behind===0)){t.behind=shown;changed=true}
   }
   const any=[...tiles.values()].some(t=>t.behind>0)
