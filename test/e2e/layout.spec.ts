@@ -47,12 +47,17 @@ test("並べ方の選択肢は全部画面の中に見えている。スマホ�
   }
 })
 
-test("スマホでは上の操作バーが1段に収まる", async ({ page }) => {
+test("スマホでは操作バーが1段に収まり、画面の下にある。トーストはバーに重ならない", async ({ page }) => {
   await openApp(page)
   test.skip(page.viewportSize()!.width > 600, "スマホの幅だけ")
   const bar = await box(page.locator("header.bar"))
-  expect(bar.height).toBeLessThan(60)
   const viewport = page.viewportSize()!
+  expect(bar.height).toBeLessThan(60)
+  expect(bar.y + bar.height).toBeCloseTo(viewport.height, 0)
+  for (const id of VIDEOS) expect((await box(tile(page, id))).y + (await box(tile(page, id))).height).toBeLessThanOrEqual(bar.y)
+  await page.locator("#toLive").click()
+  const toast = await box(page.locator("ui-toast"))
+  expect(toast.y + toast.height).toBeLessThanOrEqual(bar.y)
   for (const button of await page.locator("header.bar button:visible").all()) {
     const r = await box(button)
     expect(r.x + r.width).toBeLessThanOrEqual(viewport.width)

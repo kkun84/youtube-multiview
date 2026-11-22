@@ -147,10 +147,17 @@ button:focus-visible {
     padding: 0;
     justify-content: center;
   }
-  /* スマホでは操作バーを1段にして、動画に使える高さを増やす。並べ方は選択メニューにする */
+  /* スマホでは操作バーを1段にして画面の下に置く。動画に使える高さが増え、親指で届く。並べ方は選択メニューにする */
   .bar {
+    order: 1;
     flex-wrap: nowrap;
     padding: 4px 6px;
+  }
+  mv-board {
+    margin-top: var(--gap);
+  }
+  body [data-slot="toast-region"][data-side="bottom"] {
+    bottom: calc(env(safe-area-inset-bottom) + 52px);
   }
   .bar [data-slot="toolbar"] {
     flex-wrap: nowrap;
