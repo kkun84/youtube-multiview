@@ -2,7 +2,7 @@ import { announce } from "@ui-sdk/core"
 import type { UiDialogElement, UiFieldElement, UiSegmentedControlElement, UiSelectElement, UiSwitchElement } from "@ui-sdk/web"
 import { icons } from "./icons"
 import { arrange, colChoices, type LayoutMode } from "./layout"
-import { nextDelay, visibleDelay, type Sample } from "./live-delay"
+import { liveTarget, nextDelay, visibleDelay, type Sample } from "./live-delay"
 import type { SortableElement } from "./sortable"
 import { storage } from "./storage"
 import { escapeHtml, formatDuration } from "./text"
@@ -516,14 +516,21 @@ function measureLive() {
 function toLive(t: Tile) {
   const p = t.player
   if (!p?.seekTo || !t.isLive) return
-  // 配信の長さより先を指定すると、見られる中で一番新しい位置に移る
-  p.seekTo(p.getDuration() + 60, true)
+  const target = liveTarget(p.getDuration(), p.getCurrentTime(), t.delay)
+  p.seekTo(target, true)
   if (t.userPaused) setPaused(t, false)
   else p.playVideo()
   t.delay = 0
   t.behind = 0
   t.lastSample = null
   paint()
+  // 大きく前に戻されていたら、更新された配信の長さでもう一度合わせる
+  window.setTimeout(() => {
+    if (p.getCurrentTime() < target - 20) {
+      p.seekTo(p.getDuration() - 2, true)
+      t.lastSample = null
+    }
+  }, 4000)
 }
 $("toLive").addEventListener("click", () => {
   if ($("toLive").getAttribute("aria-disabled") === "true") {

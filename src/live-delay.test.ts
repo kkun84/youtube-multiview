@@ -38,3 +38,10 @@ test("15秒を超えるまでは表示しない", () => {
   expect(visibleDelay(14)).toBe(0)
   expect(visibleDelay(20)).toBe(20)
 })
+
+test("最新の位置へは、配信の長さと「今の位置+遅れ」の大きい方の少し手前へ移る", async () => {
+  const { liveTarget } = await import("./live-delay")
+  expect(liveTarget(7058, 6935, 120)).toBe(7056)
+  // 配信の長さが古いまま今の位置より短いときは、今の位置に遅れを足した方を使う
+  expect(liveTarget(6966, 7052, 30)).toBe(7080)
+})

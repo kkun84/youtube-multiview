@@ -17,3 +17,12 @@ export function nextDelay(delay: number, prev: Sample | null, now: Sample, rate 
 }
 
 export const visibleDelay = (delay: number): number => (delay > SHOW_AFTER ? delay : 0)
+
+/**
+ * 最新の位置へ移るときの移動先(秒)。
+ * 配信の長さは更新が遅れて今の再生位置より短いことがあるので、今の位置に数えておいた遅れを足した値と比べて大きい方を使う。
+ * 配信の長さより先を指定すると、YouTubeは最新の位置ではなく大きく前に戻すことがあるので、少し手前を指定する
+ */
+export function liveTarget(duration: number, position: number, delay: number): number {
+  return Math.max(duration, position + delay) - 2
+}
