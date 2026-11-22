@@ -156,7 +156,9 @@ setInterval(()=>{
 
 $("playAll").onclick=()=>players.forEach((p,j)=>{if(p&&p.playVideo){if(j!==audioIdx)p.mute();p.playVideo();}});
 $("muteAll").onclick=()=>{players.forEach(p=>p&&p.mute&&p.mute());audioIdx=-1;document.querySelectorAll(".tile").forEach(t=>{t.classList.remove("audio");t.querySelector(".sound").textContent="この音声";});};
-$("layout").onclick=()=>{layoutMode=(layoutMode+1)%4;if(ids.length)applyLayout();};
+// 段数が変わる列数だけを選択肢にする(4つなら1列・2列・4列。3列だと3つと1つの中途半端な並びになるので出さない)
+function colChoices(n){const out=[];let prev=0;for(let c=1;c<=n;c++){const r=Math.ceil(n/c);if(r!==prev){out.push(c);prev=r;}}return out;}
+$("layout").onclick=()=>{const ch=[0,...colChoices(ids.length)];layoutMode=ch[(ch.indexOf(layoutMode)+1)%ch.length]||0;if(ids.length)applyLayout();};
 addEventListener("resize",()=>{if(ids.length)applyLayout();});
 addEventListener("orientationchange",()=>setTimeout(()=>{if(ids.length)applyLayout();},300));
 
@@ -170,7 +172,7 @@ $("form").onsubmit=e=>{
   const bad=[], got=[];
   lines.forEach(l=>{const id=parseId(l); if(id) got.push(id); else bad.push(l);});
   if(bad.length){$("err").textContent="動画のIDが読み取れないURLがあります: "+bad.join("、")+"(チャンネルのURLではなく、動画や配信そのもののURLを入れてください)";return;}
-  ids=got.slice(0,9); save(); $("edit").hidden=true; build();
+  ids=got.slice(0,9); if(!colChoices(ids.length).includes(layoutMode))layoutMode=0; save(); $("edit").hidden=true; build();
 };
 
 let stored=null; try{stored=localStorage.getItem("mv-ids")}catch(e){}
