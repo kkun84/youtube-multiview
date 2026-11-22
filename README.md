@@ -64,13 +64,17 @@ Nixを使わないときは、`package.json`の`packageManager`と同じ版のpn
 
 ブラウザのテストはYouTubeに接続しません。`test/support/fake-youtube.js`がYouTube IFrame Player APIの代わりをします。
 
-- `src/app.ts`: 画面の動き(動画の枠、一覧、ライブ、チャット、並べ替えの操作)
-- `src/layout.ts`: 並べ方の計算
-- `src/live-delay.ts`: ライブからの遅れの計算
-- `src/sortable.ts`: UI SDKで作った並べ替えの部品(動画の枠と一覧で共用)
-- `src/youtube-id.ts`: URLから動画IDを取り出す
-- `src/update.ts`、`src/version-check.ts`: 新しい版の確認
-- `src/youtube-api.ts`: YouTube IFrame Player APIの読み込み
+コードは、入力から結果を計算するだけの部分(functional core)と、画面・YouTube・保存先とやり取りする部分(imperative shell)に分けています。`src/core/` は `src/shell/` を参照できません。fallowの境界ルールで、違反すると検査に落ちます。
+
+- `src/core/`: 計算だけの部分。DOMやYouTube、保存先に触れず、同じ入力には同じ結果を返す
+  - `layout.ts`: 並べ方の計算
+  - `live-delay.ts`: ライブからの遅れの計算
+  - `lineup.ts`: 並べる動画の読み取り、追加の確認、並べ替え
+  - `youtube-id.ts`: URLから動画IDを取り出す
+- `src/shell/`: 画面とのやり取り。Effectのサービスとスコープで、イベントの受け取りやタイマーの後始末をする
+  - `program.ts`: 起動の流れ。設定の保存先(`settings.ts`)とYouTube(`youtube-api.ts`)はEffectのサービスとして受け取る
+  - `tile.ts`、`board.ts`、`list.ts`、`chat.ts`、`move.ts`、`bar.ts`、`view.ts`、`playback.ts`: 画面の部品ごとの動き
+  - `update.ts`、`version-check.ts`: 新しい版の確認
 - `test/e2e/`: ブラウザのテスト
 
 ## 使っているもの

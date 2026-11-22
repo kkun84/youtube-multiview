@@ -94,3 +94,20 @@ export function arrange(ids: readonly string[], mode: LayoutMode, focused: strin
     .map((c) => gridRects(n, c, W, H, gap))
     .toSorted((a, b) => b.size - a.size)[0]!.rects
 }
+
+/** 動画の数に合わせた並べ方の選択肢と、その表示名 */
+export function layoutChoices(n: number): [LayoutMode, string][] {
+  return [
+    ["auto", "自動"],
+    ...(n > 1 ? colChoices(n).map((c): [LayoutMode, string] => [c, c === n ? "横一列" : `${c}列`]) : []),
+    ...(n > 2 ? [["focus", "大きく"] as [LayoutMode, string]] : [])
+  ]
+}
+
+/** 枠を上端に詰め、全体の高さを返す。縦長の画面でチャットに残りの高さを渡すときに使う */
+export function packTop(rects: readonly Rect[]): { rects: Rect[]; height: number } {
+  if (rects.length === 0) return { rects: [], height: 0 }
+  const top = Math.min(...rects.map((r) => r.y))
+  const bottom = Math.max(...rects.map((r) => r.y + r.h))
+  return { rects: rects.map((r) => ({ ...r, y: r.y - top })), height: bottom - top }
+}

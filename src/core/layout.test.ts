@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest"
-import { arrange, colChoices, focusRects } from "./layout"
+import { arrange, colChoices, focusRects, layoutChoices, packTop } from "./layout"
 
 const ids = ["a", "b", "c", "d"]
 
@@ -57,4 +57,29 @@ describe("arrange", () => {
     expect(small[0]!.x + small[0]!.y).toBeLessThan(small[1]!.x + small[1]!.y)
     expect(small[1]!.x + small[1]!.y).toBeLessThan(small[2]!.x + small[2]!.y)
   })
+})
+
+test("並べ方の選択肢は、動画の数に合わせて増える", () => {
+  expect(layoutChoices(1)).toEqual([["auto", "自動"]])
+  expect(layoutChoices(2)).toEqual([
+    ["auto", "自動"],
+    [1, "1列"],
+    [2, "横一列"]
+  ])
+  expect(layoutChoices(4).map(([, label]) => label)).toEqual(["自動", "1列", "2列", "横一列", "大きく"])
+})
+
+test("枠を上端に詰め、全体の高さを返す", () => {
+  const rects = [
+    { x: 0, y: 50, w: 160, h: 90 },
+    { x: 0, y: 144, w: 160, h: 90 }
+  ]
+  expect(packTop(rects)).toEqual({
+    rects: [
+      { x: 0, y: 0, w: 160, h: 90 },
+      { x: 0, y: 94, w: 160, h: 90 }
+    ],
+    height: 184
+  })
+  expect(packTop([])).toEqual({ rects: [], height: 0 })
 })

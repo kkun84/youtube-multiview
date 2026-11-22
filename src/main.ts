@@ -10,7 +10,10 @@ import "@ui-sdk/web/switch"
 import "@ui-sdk/web/toast"
 import "@ui-sdk/web/toggle"
 import "@ui-sdk/web/toolbar"
-import "./sortable"
-import { start } from "./app"
+import "./shell/sortable"
+import { Effect, Layer } from "effect"
+import { program } from "./shell/program"
+import { Settings } from "./shell/settings"
+import { YouTube } from "./shell/youtube-api"
 
-void start()
+Effect.runFork(program.pipe(Effect.scoped, Effect.provide(Layer.mergeAll(Settings.browser, YouTube.browser))))

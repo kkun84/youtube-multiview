@@ -28,7 +28,7 @@
     "import/no-unassigned-import": [
       "error",
       {
-        "allow": ["@ui-sdk/web/*", "**/*.css", "./sortable"]
+        "allow": ["@ui-sdk/web/*", "**/*.css", "./shell/sortable"]
       }
     ]
   },
@@ -38,23 +38,6 @@
       "files": ["test/**", "scripts/**"],
       "rules": {
         "no-await-in-loop": "off"
-      }
-    },
-    {
-      "files": ["src/app.ts"],
-      "rules": {
-        "unicorn/prefer-dom-node-dataset": "off",
-        "promise/always-return": "off",
-        "unicorn/explicit-length-check": "off",
-        "unicorn/prefer-query-selector": "off",
-        "unicorn/prefer-native-coercion-functions": "off",
-        "unicorn/prefer-dom-node-append": "off",
-        "unicorn/no-array-sort": "off",
-        "unicorn/no-array-callback-reference": "off",
-        "unicorn/consistent-function-scoping": "off",
-        "import/max-dependencies": "off",
-        "no-loop-func": "off",
-        "max-lines-per-function": "off"
       }
     }
   ]

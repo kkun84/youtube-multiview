@@ -2,6 +2,6 @@
   "$schema": "./node_modules/@mizchi/mutator/schema/mutator.config.schema.json",
   "runner": "vitest",
   "vitestConfig": "vitest.config.ts",
-  "include": ["src/layout.ts", "src/live-delay.ts", "src/youtube-id.ts", "src/text.ts", "src/version-check.ts"],
+  "include": ["src/core/**/*.ts", "src/shell/settings.ts", "src/shell/version-check.ts"],
   "reporters": ["text", "json"]
 }
