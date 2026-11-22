@@ -58,6 +58,9 @@ mv-tile{position:absolute;display:block;background:#000;border-radius:8px;overfl
   transition:left var(--ease),top var(--ease),width var(--ease),height var(--ease);
   outline:2px solid transparent;outline-offset:-2px}
 mv-tile[data-audio]{outline-color:var(--accent)}
+mv-tile[data-paused] .frame{filter:brightness(.45)}
+mv-tile[data-paused]::after{content:"一時停止中";position:absolute;right:8px;top:8px;z-index:2;padding:3px 10px;border-radius:999px;background:rgba(13,15,20,.85);color:var(--ink);font-size:12px;font-weight:700;pointer-events:none}
+mv-tile[data-paused][data-audio]::after{right:44px}
 mv-tile[data-grabbed]{transform:translate(var(--drag-x,0),var(--drag-y,0));z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.6);outline-color:#fff}
 mv-tile[data-grabbed][data-dragging]{transition:none}
 mv-board:has([data-grabbed]) iframe{pointer-events:none}
@@ -97,7 +100,7 @@ mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000
 <div class="bar">
   <ui-toolbar aria-label="操作">
     <ui-toolbar-button><button id="openList"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h12M3 12h12M3 18h8M19 15v6M16 18h6"/></svg><span class="lbl">動画の追加・削除</span></button></ui-toolbar-button>
-    <ui-toolbar-button><button id="playAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg><span class="lbl">全部を再生</span></button></ui-toolbar-button>
+    <ui-toolbar-button><button id="playAll"><span class="pi"></span><span class="lbl" id="playAllLabel">全部を一時停止</span></button></ui-toolbar-button>
     <ui-toolbar-button><button id="muteAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6m0-6-5 6"/></svg><span class="lbl">全部を消音</span></button></ui-toolbar-button>
   </ui-toolbar>
   <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
@@ -126,7 +129,7 @@ mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000
         <ui-field-label>YouTubeの操作パネルを使う</ui-field-label>
       </ui-field>
     </div>
-    <p class="hint">動画を1回タップすると、音声・拡大・移動のボタンが出ます。ダブルタップするとその動画を大きく表示し、もう一度ダブルタップで元に戻ります。移動ボタンをドラッグすると並べ替えられます。</p>
+    <p class="hint">動画を1回タップすると、再生・音声・拡大・移動のボタンが出ます。ダブルタップするとその動画を大きく表示し、もう一度ダブルタップで元に戻ります。移動ボタンをドラッグすると並べ替えられます。</p>
     <p class="hint">「YouTubeの操作パネルを使う」をオンにすると画質の変更などができますが、動画のタップで一時停止し、ダブルタップで10秒移動します。</p>
     <div class="row">
       <ui-button id="preset"><button>篝火#16の4配信に戻す</button></ui-button>
@@ -279,6 +282,9 @@ $("layout").addEventListener("valuechange",e=>{layoutMode=e.detail.value??"0";pe
 
 /* ---------- 音声と拡大 ---------- */
 function paint(){
+  const all=allPaused()
+  $("playAll").querySelector(".pi").innerHTML=(all?ICON.play:ICON.pause).replace(/20/g,"18")
+  $("playAllLabel").textContent=all?"全部を再生":"全部を一時停止"
   for(const [id,t] of tiles){
     const name=nameOf(id), on=id===audioId, big=layoutMode===FOCUS&&ids[0]===id
     t.el.toggleAttribute("data-audio",on)
@@ -289,6 +295,9 @@ function paint(){
     t.zoomIcon.innerHTML=big?ICON.shrink:ICON.grow
     t.grip.setAttribute("aria-label",`${name}を移動`)
     t.title.textContent=name
+    t.play.innerHTML=t.userPaused?ICON.play:ICON.pause
+    t.play.setAttribute("aria-label",t.userPaused?`${name}を再生`:`${name}を一時停止`)
+    t.el.toggleAttribute("data-paused",t.userPaused)
   }
 }
 function setAudio(id){
@@ -296,7 +305,7 @@ function setAudio(id){
   for(const [tid,t] of tiles){
     const p=t.player; if(!p?.mute) continue
     if(tid===audioId){p.unMute();p.setVolume(100)}else p.mute()
-    p.playVideo()
+    if(!t.userPaused) p.playVideo()
   }
   paint()
   announce(audioId?`${nameOf(audioId)}の音声を出しています`:"音声を消しました")
@@ -313,6 +322,8 @@ function toggleFocus(id){
 
 /* ---------- 動画の枠 ---------- */
 const ICON={
+  play:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M7 4.5v15l12-7.5z"/></svg>',
+  pause:'<svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="6" y="4.5" width="4" height="15" rx="1"/><rect x="14" y="4.5" width="4" height="15" rx="1"/></svg>',
   sound:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>',
   grow:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg>',
   shrink:'<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 14h6v6M20 10h-6V4M14 10l7-7M3 21l7-7"/></svg>',
@@ -324,12 +335,14 @@ function makeTile(id){
   el.setAttribute("value",id)
   el.innerHTML=`<span class="sr tile-title"></span><div class="frame"><div id="${key}"></div></div><div class="shield" aria-hidden="true"></div><div class="badge" aria-hidden="true">${ICON.sound}</div>
     <div class="controls">
+      <button type="button" class="play"></button>
       <button type="button" class="sound">${ICON.sound}</button>
       <button type="button" class="zoom"><span class="zi"></span></button>
       <mv-handle><button type="button" class="grip">${ICON.grip}</button></mv-handle>
     </div>`
-  const t={el,player:null,reveal:null,sound:el.querySelector(".sound"),zoom:el.querySelector(".zoom"),zoomIcon:el.querySelector(".zi"),grip:el.querySelector(".grip"),title:el.querySelector(".tile-title")}
+  const t={el,player:null,reveal:null,playing:true,userPaused:false,play:el.querySelector(".play"),sound:el.querySelector(".sound"),zoom:el.querySelector(".zoom"),zoomIcon:el.querySelector(".zi"),grip:el.querySelector(".grip"),title:el.querySelector(".tile-title")}
   t.sound.addEventListener("click",()=>setAudio(id))
+  t.play.addEventListener("click",()=>{setPaused(t,!t.userPaused);announce(`${nameOf(id)}を${t.userPaused?"一時停止しました":"再生しました"}`)})
   t.zoom.addEventListener("click",()=>toggleFocus(id))
   // ダブルタップを自前で判定する(iOSのdblclickはタッチ操作だと届かないことがある)
   let last=0, hideTimer=0
@@ -344,7 +357,14 @@ function makeTile(id){
   t.player=new YT.Player(key,{videoId:id,
     // YouTube側の操作表示(左上のタイトルや下の操作バー)は、操作パネルを使う設定のときだけ出す
     playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,iv_load_policy:3,controls:ytControls()?1:0,disablekb:ytControls()?0:1},
-    events:{onReady:e=>{e.target.mute();e.target.playVideo();showTitle()},onStateChange:showTitle}})
+    events:{
+      onReady:e=>{e.target.mute();e.target.playVideo();showTitle()},
+      onStateChange:e=>{
+        showTitle()
+        // 再生中(1)と読み込み中(3)を再生扱いにする。YouTubeの操作パネルで止めたときも表示を合わせる
+        const playing=e.data===1||e.data===3
+        if(playing!==t.playing){t.playing=playing;if(ytControls())t.userPaused=!playing;paint()}
+      }}})
   return t
 }
 function setOrder(next){
@@ -396,7 +416,18 @@ $("addForm").addEventListener("submit",e=>{
 })
 $("preset").addEventListener("click",()=>{ids=[...PRESET];render();announce("篝火#16の4配信に戻しました")})
 $("openList").addEventListener("click",()=>{$("dialog").open=true})
-$("playAll").addEventListener("click",()=>{for(const [id,t] of tiles){const p=t.player;if(p?.playVideo){if(id!==audioId)p.mute();p.playVideo()}}})
+function setPaused(t,paused){
+  t.userPaused=paused; t.playing=!paused
+  const p=t.player; if(!p?.playVideo) return
+  if(paused) p.pauseVideo(); else {if(t.el.getAttribute("value")!==audioId)p.mute();p.playVideo()}
+  paint()
+}
+const allPaused=()=>tiles.size>0&&[...tiles.values()].every(t=>t.userPaused)
+$("playAll").addEventListener("click",()=>{
+  const resume=allPaused()
+  for(const t of tiles.values()) setPaused(t,!resume)
+  announce(resume?"全部の動画を再生しました":"全部の動画を一時停止しました")
+})
 $("muteAll").addEventListener("click",()=>{for(const t of tiles.values())t.player?.mute?.();audioId=null;paint();renderList();announce("音声を消しました")})
 const ytControls=()=>document.body.classList.contains("yt-controls")
 $("ytSwitch").addEventListener("checkedchange",e=>{
@@ -412,7 +443,7 @@ new ResizeObserver(()=>layout()).observe(board)
 setInterval(()=>{
   if(document.body.classList.contains("yt-controls")) return
   for(const [id,t] of tiles){
-    const p=t.player; if(!p?.getPlayerState||id===audioId) continue
+    const p=t.player; if(!p?.getPlayerState||id===audioId||t.userPaused) continue
     if(p.getPlayerState()===2){p.mute();p.playVideo()}
   }
 },3000)
