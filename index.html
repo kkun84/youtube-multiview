@@ -78,6 +78,34 @@ mv-tile .controls button[aria-pressed="true"]{background:var(--accent);border-co
 mv-tile .controls .grip{cursor:grab}
 mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000}
 
+.stage{flex:1;min-height:0;display:flex;flex-direction:row}
+mv-board{flex:1}
+.chat{width:min(360px,38vw);display:flex;flex-direction:column;gap:6px;padding:0 var(--gap) var(--gap) 0;min-height:0}
+.chat[hidden]{display:none}
+.chathead{display:flex;gap:6px;align-items:center}
+.chathead [data-slot="select"],.chathead [data-slot="select-trigger"]{flex:1;min-width:0}
+.chathead [data-slot="select-trigger"]{width:100%;justify-content:space-between;overflow:hidden}
+.chathead [data-slot="select-value"]{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chathead a{color:var(--ink);font-size:13px;font-weight:700;white-space:nowrap;padding:8px}
+.chathead .x{width:36px;height:36px;padding:0;display:grid;place-items:center}
+.chat iframe{flex:1;min-height:0;width:100%;border:0;border-radius:8px;background:var(--panel)}
+.chat .hint{font-size:12px}
+@media (orientation:portrait){.stage{flex-direction:column}.chat{width:auto;height:42%;padding:0 var(--gap) var(--gap)}}
+
+/* 移動ボタンをタップしたときは、動かす先をタップで選ぶ */
+.movebar{display:flex;gap:10px;align-items:center;margin:0 var(--gap) var(--gap);padding:8px 8px 8px 14px;border-radius:10px;background:var(--accent);color:var(--on-accent);font-weight:700}
+.movebar[hidden]{display:none}
+.movebar span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.movebar button{background:var(--on-accent);color:#fff;border:0;border-radius:8px;height:36px;padding:0 14px;font-weight:700}
+mv-tile .target{position:absolute;inset:0;z-index:4;display:none;place-items:center;border:2px dashed #fff;border-radius:8px;background:rgba(13,15,20,.55);color:#fff;font-weight:700;font-size:15px;cursor:pointer}
+body[data-moving] mv-tile:not([data-move-source]) .target{display:grid}
+mv-tile[data-move-source]{outline:3px solid #fff}
+
+/* ライブの遅れと終了 */
+mv-tile .live{position:absolute;left:6px;top:6px;z-index:3;display:none;align-items:center;gap:6px;height:32px;padding:0 12px;border-radius:999px;border:0;background:#e5253a;color:#fff;font-weight:700;font-size:13px;cursor:pointer}
+mv-tile[data-behind] .live{display:inline-flex}
+mv-tile .ended{position:absolute;inset:0;z-index:3;display:none;flex-direction:column;gap:10px;align-items:center;justify-content:center;background:rgba(13,15,20,.85);color:var(--ink);text-align:center;padding:12px}
+mv-tile[data-ended] .ended{display:flex}
 .empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
 [data-slot="dialog-title"]:focus{outline:none}
 [data-slot="dialog-content"]{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 48px);overflow:auto;display:flex;flex-direction:column;gap:16px}
@@ -101,12 +129,29 @@ mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000
   <ui-toolbar aria-label="操作">
     <ui-toolbar-button><button id="openList"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h12M3 12h12M3 18h8M19 15v6M16 18h6"/></svg><span class="lbl">動画の追加・削除</span></button></ui-toolbar-button>
     <ui-toolbar-button><button id="playAll"><span class="pi"></span><span class="lbl" id="playAllLabel">全部を一時停止</span></button></ui-toolbar-button>
+    <ui-toolbar-button><button id="toLive" aria-disabled="true"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg><span class="lbl">全部をライブに合わせる</span></button></ui-toolbar-button>
+    <ui-toolbar-button><button id="chatBtn" aria-pressed="false" aria-controls="chat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="lbl">ライブチャット</span></button></ui-toolbar-button>
     <ui-toolbar-button><button id="muteAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6m0-6-5 6"/></svg><span class="lbl">全部を消音</span></button></ui-toolbar-button>
   </ui-toolbar>
   <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
 </div>
 
+<div class="movebar" id="movebar" role="status" hidden><span id="moveText"></span><button type="button" id="moveCancel">やめる</button></div>
+<div class="stage">
 <mv-board id="board" aria-label="並んでいる動画" aria-describedby="moveHelp"></mv-board>
+<aside class="chat" id="chat" aria-label="ライブチャット" hidden>
+  <div class="chathead">
+    <ui-select id="chatSelect">
+      <ui-select-trigger><button aria-label="チャットを表示する配信"><ui-select-value></ui-select-value></button></ui-select-trigger>
+      <ui-select-content hidden></ui-select-content>
+    </ui-select>
+    <a id="chatOpen" href="https://www.youtube.com/" target="_blank" rel="noopener">YouTubeで開く</a>
+    <button type="button" class="x" id="chatClose" aria-label="ライブチャットを閉じる"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+  </div>
+  <iframe id="chatFrame" title="ライブチャット"></iframe>
+  <p class="hint">チャットが表示されないときは「YouTubeで開く」から見てください。YouTubeの仕様で、スマホのブラウザでは埋め込みのチャットが出ないことがあります。</p>
+</aside>
+</div>
 <p class="sr" id="moveHelp">各動画の移動ボタンでスペースキーを押すと持ち上がり、矢印キーで場所を選んで、もう一度スペースキーで置きます。Escapeキーで取り消せます。</p>
 
 <ui-dialog id="dialog">
@@ -129,7 +174,7 @@ mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000
         <ui-field-label>YouTubeの操作パネルを使う</ui-field-label>
       </ui-field>
     </div>
-    <p class="hint">動画を1回タップすると、再生・音声・拡大・移動のボタンが出ます。ダブルタップするとその動画を大きく表示し、もう一度ダブルタップで元に戻ります。移動ボタンをドラッグすると並べ替えられます。</p>
+    <p class="hint">動画を1回タップすると、再生・音声・拡大・移動のボタンが出ます。ダブルタップするとその動画を大きく表示し、もう一度ダブルタップで元に戻ります。移動ボタンをタップすると、移動先をタップで選べます。移動ボタンをドラッグしても並べ替えられます。</p>
     <p class="hint">「YouTubeの操作パネルを使う」をオンにすると画質の変更などができますが、動画のタップで一時停止し、ダブルタップで10秒移動します。</p>
     <div class="row">
       <ui-button id="preset"><button>篝火#16の4配信に戻す</button></ui-button>
@@ -281,6 +326,7 @@ function renderLayoutChoices(){
 $("layout").addEventListener("valuechange",e=>{layoutMode=e.detail.value??"0";persist();layout();paint()})
 
 /* ---------- 音声と拡大 ---------- */
+const fmt=sec=>{sec=Math.round(sec);const m=Math.floor(sec/60),s=sec%60;return m?`${m}分${s?s+"秒":""}`:`${s}秒`}
 function paint(){
   const all=allPaused()
   $("playAll").querySelector(".pi").innerHTML=(all?ICON.play:ICON.pause).replace(/20/g,"18")
@@ -298,6 +344,11 @@ function paint(){
     t.play.innerHTML=t.userPaused?ICON.play:ICON.pause
     t.play.setAttribute("aria-label",t.userPaused?`${name}を再生`:`${name}を一時停止`)
     t.el.toggleAttribute("data-paused",t.userPaused)
+    t.el.toggleAttribute("data-behind",t.behind>0)
+    t.live.textContent=t.behind>0?`ライブに戻る(${fmt(t.behind)}遅れ)`:""
+    t.target.textContent=`ここへ移動`
+    t.target.setAttribute("aria-label",`${moveSource?nameOf(moveSource):""}を${name}の位置へ移動`)
+    t.el.toggleAttribute("data-move-source",moveSource===id)
   }
 }
 function setAudio(id){
@@ -334,16 +385,30 @@ function makeTile(id){
   const el=document.createElement("mv-tile")
   el.setAttribute("value",id)
   el.innerHTML=`<span class="sr tile-title"></span><div class="frame"><div id="${key}"></div></div><div class="shield" aria-hidden="true"></div><div class="badge" aria-hidden="true">${ICON.sound}</div>
+    <button type="button" class="live"></button>
+    <div class="ended"><p>配信が終わったか、再生できなくなりました。</p><button type="button" data-variant="solid" class="endremove">一覧から外す</button></div>
+    <button type="button" class="target"></button>
     <div class="controls">
       <button type="button" class="play"></button>
       <button type="button" class="sound">${ICON.sound}</button>
       <button type="button" class="zoom"><span class="zi"></span></button>
       <mv-handle><button type="button" class="grip">${ICON.grip}</button></mv-handle>
     </div>`
-  const t={el,player:null,reveal:null,playing:true,userPaused:false,play:el.querySelector(".play"),sound:el.querySelector(".sound"),zoom:el.querySelector(".zoom"),zoomIcon:el.querySelector(".zi"),grip:el.querySelector(".grip"),title:el.querySelector(".tile-title")}
+  const t={el,player:null,reveal:null,playing:true,userPaused:false,behind:0,isLive:false,live:el.querySelector(".live"),target:el.querySelector(".target"),play:el.querySelector(".play"),sound:el.querySelector(".sound"),zoom:el.querySelector(".zoom"),zoomIcon:el.querySelector(".zi"),grip:el.querySelector(".grip"),title:el.querySelector(".tile-title")}
   t.sound.addEventListener("click",()=>setAudio(id))
   t.play.addEventListener("click",()=>{setPaused(t,!t.userPaused);announce(`${nameOf(id)}を${t.userPaused?"一時停止しました":"再生しました"}`)})
   t.zoom.addEventListener("click",()=>toggleFocus(id))
+  t.live.addEventListener("click",()=>{toLive(t);announce(`${nameOf(id)}をライブに合わせました`)})
+  t.target.addEventListener("click",()=>finishMove(id))
+  el.querySelector(".endremove").addEventListener("click",()=>{const name=nameOf(id);ids=ids.filter(x=>x!==id);render();announce(`${name}を一覧から外しました`)})
+  // 移動ボタンのタップは移動先を選ぶ操作にする。ドラッグした後のクリックと、キーボード操作(並べ替えはUI SDKが扱う)は除く
+  let downAt=null
+  t.grip.addEventListener("pointerdown",e=>{downAt={x:e.clientX,y:e.clientY}})
+  t.grip.addEventListener("click",e=>{
+    if(e.detail===0) return
+    if(downAt&&Math.hypot(e.clientX-downAt.x,e.clientY-downAt.y)>8) return
+    moveSource===id?cancelMove():startMove(id)
+  })
   // ダブルタップを自前で判定する(iOSのdblclickはタッチ操作だと届かないことがある)
   let last=0, hideTimer=0
   const reveal=()=>{el.setAttribute("data-show","");clearTimeout(hideTimer);hideTimer=setTimeout(()=>el.removeAttribute("data-show"),4000)}
@@ -353,17 +418,19 @@ function makeTile(id){
   el.querySelector(".controls").addEventListener("pointerdown",reveal)
   t.reveal=reveal
   board.appendChild(el)
-  const showTitle=()=>{const d=t.player?.getVideoData?.();if(d?.title&&titles.get(id)!==d.title){titles.set(id,d.title);paint();renderList()}}
+  const showTitle=()=>{const d=t.player?.getVideoData?.();if(d?.title&&titles.get(id)!==d.title){titles.set(id,d.title);paint();renderList();if(!$("chat").hidden)renderChatChoices()}}
   t.player=new YT.Player(key,{videoId:id,
     // YouTube側の操作表示(左上のタイトルや下の操作バー)は、操作パネルを使う設定のときだけ出す
     playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,iv_load_policy:3,controls:ytControls()?1:0,disablekb:ytControls()?0:1},
     events:{
       onReady:e=>{e.target.mute();e.target.playVideo();showTitle()},
+      onError:()=>{t.el.setAttribute("data-ended","");t.el.querySelector(".ended p").textContent="この動画は再生できません。非公開か、埋め込みが許可されていない可能性があります。"},
       onStateChange:e=>{
         showTitle()
         // 再生中(1)と読み込み中(3)を再生扱いにする。YouTubeの操作パネルで止めたときも表示を合わせる
         const playing=e.data===1||e.data===3
         if(playing!==t.playing){t.playing=playing;if(ytControls())t.userPaused=!playing;paint()}
+        t.el.toggleAttribute("data-ended",e.data===0&&t.isLive)
       }}})
   return t
 }
@@ -382,7 +449,9 @@ function render(){
     board.insertAdjacentHTML("beforeend",'<div class="empty"><p>見たい動画を追加してください。</p><ui-button><button data-variant="solid">動画を追加する</button></ui-button></div>')
     board.querySelector(".empty button").addEventListener("click",()=>{$("dialog").open=true})
   }
+  if(moveSource&&!ids.includes(moveSource)) cancelMove("")
   renderLayoutChoices(); persist(); layout(); paint(); renderList()
+  if(!$("chat").hidden) renderChatChoices()
 }
 board.addEventListener("valuechange",e=>{
   ids=[...e.detail.value]; board.value=[...ids]
@@ -416,6 +485,87 @@ $("addForm").addEventListener("submit",e=>{
 })
 $("preset").addEventListener("click",()=>{ids=[...PRESET];render();announce("篝火#16の4配信に戻しました")})
 $("openList").addEventListener("click",()=>{$("dialog").open=true})
+/* ---------- ライブ ---------- */
+// ライブ配信では getDuration() が配信開始からの経過時間になるので、それと再生位置の差を遅れとみなす
+const BEHIND=20
+function measureLive(){
+  let changed=false
+  for(const t of tiles.values()){
+    const p=t.player; if(!p?.getDuration) continue
+    const d=p.getVideoData?.()
+    t.isLive=!!d?.isLive
+    const behind=t.isLive?Math.max(0,p.getDuration()-p.getCurrentTime()):0
+    const shown=behind>BEHIND?behind:0
+    if(Math.abs(shown-t.behind)>=1||(shown===0)!==(t.behind===0)){t.behind=shown;changed=true}
+  }
+  const any=[...tiles.values()].some(t=>t.behind>0)
+  $("toLive").setAttribute("aria-disabled",String(!any))
+  if(changed) paint()
+}
+function toLive(t){
+  const p=t.player; if(!p?.seekTo||!t.isLive) return
+  p.seekTo(p.getDuration(),true)
+  if(t.userPaused) setPaused(t,false); else p.playVideo()
+  t.behind=0; paint()
+}
+$("toLive").addEventListener("click",()=>{
+  if($("toLive").getAttribute("aria-disabled")==="true"){announce("遅れている配信はありません");return}
+  for(const t of tiles.values()) if(t.behind>0) toLive(t)
+  announce("遅れていた配信をライブに合わせました")
+})
+setInterval(measureLive,2000)
+
+/* ---------- タップで移動 ---------- */
+let moveSource=null
+function startMove(id){
+  moveSource=id; document.body.setAttribute("data-moving","")
+  $("moveText").textContent=`「${nameOf(id)}」の移動先の動画をタップしてください`
+  $("movebar").hidden=false; paint()
+  board.querySelector(`mv-tile:not([value="${id}"]) .target`)?.focus({preventScroll:true})
+}
+function cancelMove(msg="移動をやめました"){
+  if(!moveSource) return
+  const src=moveSource; moveSource=null; document.body.removeAttribute("data-moving"); $("movebar").hidden=true; paint()
+  tiles.get(src)?.grip.focus({preventScroll:true})
+  if(msg) announce(msg)
+}
+function finishMove(targetId){
+  const src=moveSource; if(!src||src===targetId) return
+  const index=ids.indexOf(targetId)
+  const next=ids.filter(x=>x!==src); next.splice(index,0,src)
+  setOrder(next); persist(); renderList()
+  cancelMove(`${nameOf(src)}を${index+1}番目に移動しました`)
+  layout()
+}
+$("moveCancel").addEventListener("click",()=>cancelMove())
+addEventListener("keydown",e=>{if(e.key==="Escape"&&moveSource)cancelMove()})
+
+/* ---------- ライブチャット ---------- */
+let chatId=null
+function renderChatChoices(){
+  const sel=$("chatSelect"), content=sel.querySelector("ui-select-content")
+  if(!ids.includes(chatId)) chatId=(audioId&&ids.includes(audioId))?audioId:ids[0]??null
+  content.innerHTML=ids.map(id=>`<ui-select-item value="${id}">${esc(nameOf(id))}</ui-select-item>`).join("")
+  customElements.whenDefined("ui-select").then(()=>{if(chatId)sel.value=chatId})
+  loadChat()
+}
+function loadChat(){
+  if($("chat").hidden||!chatId) return
+  const src=`https://www.youtube.com/live_chat?v=${chatId}&embed_domain=${location.hostname}&dark_theme=1`
+  if($("chatFrame").getAttribute("src")!==src) $("chatFrame").setAttribute("src",src)
+  $("chatOpen").href=`https://www.youtube.com/live_chat?v=${chatId}`
+  $("chatOpen").setAttribute("aria-label",`${nameOf(chatId)}のチャットをYouTubeで開く`)
+}
+function setChat(open){
+  $("chat").hidden=!open; $("chatBtn").setAttribute("aria-pressed",String(open))
+  if(open) renderChatChoices(); else $("chatFrame").removeAttribute("src")
+  requestAnimationFrame(layout)
+  store.set("mv-chat",open?"1":"0")
+}
+$("chatBtn").addEventListener("click",()=>setChat($("chat").hidden))
+$("chatClose").addEventListener("click",()=>{setChat(false);$("chatBtn").focus()})
+$("chatSelect").addEventListener("valuechange",e=>{if(e.detail.value){chatId=e.detail.value;loadChat()}})
+
 function setPaused(t,paused){
   t.userPaused=paused; t.playing=!paused
   const p=t.player; if(!p?.playVideo) return
@@ -453,7 +603,7 @@ ids=(fromHash!==undefined?fromHash.split(","):store.get("mv-ids",PRESET.join(","
 layoutMode=store.get("mv-layout","0")
 if(store.get("mv-yt","0")==="1"){document.body.classList.add("yt-controls");customElements.whenDefined("ui-switch").then(()=>{$("ytSwitch").checked=true})}
 
-window.onYouTubeIframeAPIReady=()=>{ytReady=true;render()}
+window.onYouTubeIframeAPIReady=()=>{ytReady=true;render();if(store.get("mv-chat","0")==="1")setChat(true)}
 const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s)
 </script>
 </body>
