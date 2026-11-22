@@ -20,9 +20,10 @@ button{font:inherit;color:inherit;cursor:pointer}
 button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .bar{display:flex;gap:6px;align-items:center;padding:6px 8px;flex-wrap:wrap}
 .bar .title{font-weight:700;margin-right:auto;white-space:nowrap}
+@media (max-width:500px){.bar .title{display:none}.bar{justify-content:space-between}.chip{padding:6px 9px;font-size:13px}}
 .chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;white-space:nowrap}
 .chip.on{border-color:var(--accent);color:var(--accent)}
-.grid{flex:1;min-height:0;display:grid;gap:4px;padding:0 4px 4px}
+.grid{flex:1;min-height:0;display:grid;gap:4px;padding:0 4px 4px;justify-content:center;align-content:center}
 .tile{position:relative;background:#000;border:2px solid transparent;border-radius:6px;overflow:hidden;min-height:0}
 .tile.audio{border-color:var(--accent)}
 .tile .frame{position:absolute;inset:0}
@@ -74,7 +75,7 @@ const PRESET=[
 ];
 const $=id=>document.getElementById(id);
 const grid=$("grid");
-let ids=[], players=[], audioIdx=-1, layoutMode="auto";
+let ids=[], players=[], audioIdx=-1, layoutMode=0; // 0は自動、1以上は列数の指定
 
 function parseId(s){
   s=s.trim(); if(!s) return null;
@@ -96,21 +97,24 @@ function save(){
   try{localStorage.setItem("mv-ids",ids.join(","))}catch(e){}
   history.replaceState(null,"","#v="+ids.join(","));
 }
-function cols(n){
-  const land=innerWidth>=innerHeight;
-  if(layoutMode==="row") return [n,1];
-  if(layoutMode==="col") return [1,n];
-  if(n<=1) return [1,1];
-  if(n===2) return land?[2,1]:[1,2];
-  if(n<=4) return [2,2];
-  if(n<=6) return land?[3,2]:[2,3];
-  return [3,3];
+// 画面の縦横サイズに対して、16:9の動画が一番大きく映る列数を選ぶ。iPhoneの縦なら1列、iPadの横なら2列になる
+function fit(n){
+  const g=grid.getBoundingClientRect(), gap=4;
+  const W=g.width-8, H=g.height-4;
+  let best={c:1,w:0};
+  const cands=layoutMode?[Math.min(layoutMode,n)]:Array.from({length:n},(_,i)=>i+1);
+  for(const c of cands){
+    const r=Math.ceil(n/c);
+    const w=Math.min((W-gap*(c-1))/c,((H-gap*(r-1))/r)*16/9);
+    if(w>best.w) best={c,w};
+  }
+  return best;
 }
 function applyLayout(){
-  const [c,r]=cols(ids.length);
-  grid.style.gridTemplateColumns=`repeat(${c},minmax(0,1fr))`;
-  grid.style.gridTemplateRows=`repeat(${r},minmax(0,1fr))`;
-  $("layout").textContent="並び: "+({auto:"自動",row:"横一列",col:"縦一列"}[layoutMode]);
+  const n=ids.length, {c,w}=fit(n), h=w*9/16;
+  grid.style.gridTemplateColumns=`repeat(${c},${Math.floor(w)}px)`;
+  grid.style.gridTemplateRows=`repeat(${Math.ceil(n/c)},${Math.floor(h)}px)`;
+  $("layout").textContent="並び: "+(layoutMode?layoutMode+"列":"自動");
 }
 function setAudio(i){
   audioIdx=i;
@@ -152,8 +156,9 @@ setInterval(()=>{
 
 $("playAll").onclick=()=>players.forEach((p,j)=>{if(p&&p.playVideo){if(j!==audioIdx)p.mute();p.playVideo();}});
 $("muteAll").onclick=()=>{players.forEach(p=>p&&p.mute&&p.mute());audioIdx=-1;document.querySelectorAll(".tile").forEach(t=>{t.classList.remove("audio");t.querySelector(".sound").textContent="この音声";});};
-$("layout").onclick=()=>{layoutMode={auto:"row",row:"col",col:"auto"}[layoutMode];if(ids.length)applyLayout();};
+$("layout").onclick=()=>{layoutMode=(layoutMode+1)%4;if(ids.length)applyLayout();};
 addEventListener("resize",()=>{if(ids.length)applyLayout();});
+addEventListener("orientationchange",()=>setTimeout(()=>{if(ids.length)applyLayout();},300));
 
 function openEdit(){ $("urls").value=ids.map(id=>"https://www.youtube.com/watch?v="+id).join("\n"); $("err").textContent=""; $("edit").hidden=false; }
 $("editBtn").onclick=openEdit;
