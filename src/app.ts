@@ -290,6 +290,20 @@ function makeTile(id: string): Tile {
     }
   })
   q(el, ".controls").addEventListener("pointerdown", reveal)
+  // 操作ボタンの表示はここだけで決める。CSSの:hoverはタッチの後も残ることがあり、ボタンが消えなくなる
+  el.addEventListener("pointermove", (e) => {
+    if (e.pointerType === "mouse") reveal()
+  })
+  // キーボードで操作している間は出したままにし、フォーカスが外れたら4秒後に消す
+  el.addEventListener("focusin", (e) => {
+    if ((e.target as Element).matches(":focus-visible")) {
+      el.setAttribute("data-show", "")
+      clearTimeout(hideTimer)
+    }
+  })
+  el.addEventListener("focusout", () => {
+    if (el.hasAttribute("data-show")) reveal()
+  })
   board.appendChild(el)
 
   const showTitle = () => {
