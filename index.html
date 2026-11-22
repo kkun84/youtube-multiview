@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>YouTube同時視聴</title>
+<style>
+/* 動画を画面いっぱいに格子状に並べ、上の細い帯で音声の切り替えとURLの編集をする */
+:root{
+  --bg:#0d0f14; --panel:#171a22; --ink:#eceae6; --muted:#9097a6; --line:#2a2f3c; --accent:#ff6a2b;
+  --body:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",system-ui,sans-serif;
+  color-scheme:dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:14px;display:flex;flex-direction:column;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+button{font:inherit;color:inherit;cursor:pointer}
+button:focus-visible,textarea:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.bar{display:flex;gap:6px;align-items:center;padding:6px 8px;flex-wrap:wrap}
+.bar .title{font-weight:700;margin-right:auto;white-space:nowrap}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700;white-space:nowrap}
+.chip.on{border-color:var(--accent);color:var(--accent)}
+.grid{flex:1;min-height:0;display:grid;gap:4px;padding:0 4px 4px}
+.tile{position:relative;background:#000;border:2px solid transparent;border-radius:6px;overflow:hidden;min-height:0}
+.tile.audio{border-color:var(--accent)}
+.tile .frame{position:absolute;inset:0}
+.tile .frame iframe{width:100%;height:100%;border:0;display:block}
+.tile .sound{position:absolute;left:6px;bottom:6px;z-index:2;background:rgba(13,15,20,.82);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-weight:700}
+.tile.audio .sound{background:var(--accent);border-color:var(--accent);color:#fff}
+.tile .label{position:absolute;left:0;right:0;top:0;z-index:2;padding:4px 8px;font-size:12px;background:linear-gradient(rgba(0,0,0,.7),transparent);pointer-events:none;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.edit{position:fixed;inset:0;z-index:10;background:rgba(0,0,0,.6);display:flex;align-items:flex-start;justify-content:center;padding:max(24px,env(safe-area-inset-top)) 12px 12px}
+.edit[hidden]{display:none}
+.sheet{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;width:min(560px,100%);display:flex;flex-direction:column;gap:10px}
+.sheet h2{margin:0;font-size:17px}
+.sheet p{margin:0;color:var(--muted);font-size:13px;line-height:1.5}
+.sheet textarea{width:100%;min-height:150px;font:inherit;font-size:16px;background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:10px;padding:10px}
+.sheet .row{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.sheet .err{color:#ff8a8a}
+.empty{display:flex;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
+</style>
+</head>
+<body>
+<div class="bar">
+  <span class="title">同時視聴</span>
+  <button class="chip" id="playAll" type="button">全部を再生</button>
+  <button class="chip" id="muteAll" type="button">音を消す</button>
+  <button class="chip" id="layout" type="button">並び: 自動</button>
+  <button class="chip" id="editBtn" type="button">URLを編集</button>
+</div>
+<div class="grid" id="grid"></div>
+
+<div class="edit" id="edit" hidden>
+  <form class="sheet" id="form">
+    <h2>見たい動画のURL</h2>
+    <p>YouTubeの動画や配信のURLを1行に1つずつ入れてください(最大9つ)。全部の映像が同時に流れ、音は「この音声」を押した1つだけ出ます。</p>
+    <textarea id="urls" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+    <p class="err" id="err"></p>
+    <div class="row">
+      <button class="chip" type="button" id="preset">篝火#16の4配信を入れる</button>
+      <button class="chip" type="button" id="cancel">閉じる</button>
+      <button class="chip on" type="submit">この内容で表示</button>
+    </div>
+  </form>
+</div>
+
+<script>
+const PRESET=[
+  ["https://www.youtube.com/watch?v=QNZjuyvcjw8","East Geek Smash(メイン)"],
+  ["https://www.youtube.com/watch?v=3UtyipqHJbw","ぷらずま"],
+  ["https://www.youtube.com/watch?v=6Lp2NYJDVsQ","無明遊者"],
+  ["https://www.youtube.com/watch?v=_oNm1mKvgac","VGBootCamp(英語)"]
+];
+const $=id=>document.getElementById(id);
+const grid=$("grid");
+let ids=[], players=[], audioIdx=-1, layoutMode="auto";
+
+function parseId(s){
+  s=s.trim(); if(!s) return null;
+  if(/^[\w-]{11}$/.test(s)) return s;
+  try{
+    const u=new URL(s.startsWith("http")?s:"https://"+s);
+    if(u.hostname.endsWith("youtu.be")) return u.pathname.slice(1,12)||null;
+    if(u.searchParams.get("v")) return u.searchParams.get("v");
+    const m=u.pathname.match(/\/(?:live|embed|shorts|v)\/([\w-]{11})/);
+    if(m) return m[1];
+  }catch(e){}
+  return undefined;
+}
+function readHash(){
+  const m=location.hash.match(/v=([\w,-]+)/);
+  return m?m[1].split(",").filter(x=>/^[\w-]{11}$/.test(x)).slice(0,9):null;
+}
+function save(){
+  try{localStorage.setItem("mv-ids",ids.join(","))}catch(e){}
+  history.replaceState(null,"","#v="+ids.join(","));
+}
+function cols(n){
+  const land=innerWidth>=innerHeight;
+  if(layoutMode==="row") return [n,1];
+  if(layoutMode==="col") return [1,n];
+  if(n<=1) return [1,1];
+  if(n===2) return land?[2,1]:[1,2];
+  if(n<=4) return [2,2];
+  if(n<=6) return land?[3,2]:[2,3];
+  return [3,3];
+}
+function applyLayout(){
+  const [c,r]=cols(ids.length);
+  grid.style.gridTemplateColumns=`repeat(${c},minmax(0,1fr))`;
+  grid.style.gridTemplateRows=`repeat(${r},minmax(0,1fr))`;
+  $("layout").textContent="並び: "+({auto:"自動",row:"横一列",col:"縦一列"}[layoutMode]);
+}
+function setAudio(i){
+  audioIdx=i;
+  players.forEach((p,j)=>{
+    if(!p||!p.mute) return;
+    if(j===i){p.unMute();p.setVolume(100);}else p.mute();
+    p.playVideo();
+  });
+  document.querySelectorAll(".tile").forEach((t,j)=>{
+    t.classList.toggle("audio",j===i);
+    t.querySelector(".sound").textContent=j===i?"音声オン":"この音声";
+  });
+}
+function build(){
+  players.forEach(p=>{try{p.destroy()}catch(e){}});
+  players=[]; audioIdx=-1; grid.innerHTML="";
+  if(!ids.length){grid.innerHTML='<div class="empty">「URLを編集」から見たい動画を追加してください。</div>';grid.style.gridTemplateColumns="1fr";grid.style.gridTemplateRows="1fr";return;}
+  applyLayout();
+  ids.forEach((id,i)=>{
+    const t=document.createElement("div"); t.className="tile";
+    t.innerHTML=`<div class="frame"><div id="p${i}"></div></div><div class="label" id="l${i}"></div><button class="sound" type="button">この音声</button>`;
+    t.querySelector(".sound").addEventListener("click",()=>setAudio(i));
+    grid.appendChild(t);
+    players[i]=new YT.Player("p"+i,{videoId:id,
+      playerVars:{autoplay:1,mute:1,playsinline:1,rel:0,modestbranding:1},
+      events:{
+        onReady:e=>{e.target.mute();e.target.playVideo();const d=e.target.getVideoData&&e.target.getVideoData();if(d&&d.title)$("l"+i).textContent=d.title;},
+        onStateChange:e=>{const d=e.target.getVideoData&&e.target.getVideoData();if(d&&d.title)$("l"+i).textContent=d.title;}
+      }});
+  });
+}
+// iPadのSafariは、音声付きの動画を再生すると他の動画を止めることがある。無音の動画が止まっていたら再生し直す
+setInterval(()=>{
+  players.forEach((p,j)=>{
+    if(!p||!p.getPlayerState||j===audioIdx) return;
+    if(p.getPlayerState()===2){p.mute();p.playVideo();}
+  });
+},3000);
+
+$("playAll").onclick=()=>players.forEach((p,j)=>{if(p&&p.playVideo){if(j!==audioIdx)p.mute();p.playVideo();}});
+$("muteAll").onclick=()=>{players.forEach(p=>p&&p.mute&&p.mute());audioIdx=-1;document.querySelectorAll(".tile").forEach(t=>{t.classList.remove("audio");t.querySelector(".sound").textContent="この音声";});};
+$("layout").onclick=()=>{layoutMode={auto:"row",row:"col",col:"auto"}[layoutMode];if(ids.length)applyLayout();};
+addEventListener("resize",()=>{if(ids.length)applyLayout();});
+
+function openEdit(){ $("urls").value=ids.map(id=>"https://www.youtube.com/watch?v="+id).join("\n"); $("err").textContent=""; $("edit").hidden=false; }
+$("editBtn").onclick=openEdit;
+$("cancel").onclick=()=>{$("edit").hidden=true;};
+$("preset").onclick=()=>{$("urls").value=PRESET.map(p=>p[0]).join("\n");};
+$("form").onsubmit=e=>{
+  e.preventDefault();
+  const lines=$("urls").value.split(/\n+/).map(s=>s.trim()).filter(Boolean);
+  const bad=[], got=[];
+  lines.forEach(l=>{const id=parseId(l); if(id) got.push(id); else bad.push(l);});
+  if(bad.length){$("err").textContent="動画のIDが読み取れないURLがあります: "+bad.join("、")+"(チャンネルのURLではなく、動画や配信そのもののURLを入れてください)";return;}
+  ids=got.slice(0,9); save(); $("edit").hidden=true; build();
+};
+
+let stored=null; try{stored=localStorage.getItem("mv-ids")}catch(e){}
+ids=readHash()||(stored?stored.split(",").filter(Boolean):PRESET.map(p=>parseId(p[0])));
+
+window.onYouTubeIframeAPIReady=()=>{build(); save();};
+const s=document.createElement("script"); s.src="https://www.youtube.com/iframe_api"; document.head.appendChild(s);
+</script>
+</body>
+</html>
