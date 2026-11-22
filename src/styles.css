@@ -745,3 +745,81 @@ mv-list-item[data-index="8"] {
     height: 28px;
   }
 }
+
+/* 再生位置のバー。録画の動画で、操作ボタンと一緒に出す */
+mv-tile .seek {
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: 52px;
+  z-index: 2;
+  display: none;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.18s;
+}
+mv-tile[data-seekable] .seek {
+  display: block;
+}
+mv-tile[data-show] .seek,
+body.yt-controls mv-tile .seek {
+  opacity: 1;
+  pointer-events: auto;
+}
+mv-tile .seek [data-slot="slider-control"] {
+  display: flex;
+  align-items: center;
+  height: 24px;
+  touch-action: none;
+}
+mv-tile .seek [data-slot="slider-track"] {
+  position: relative;
+  flex: 1;
+  height: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.35);
+}
+mv-tile .seek [data-slot="slider-indicator"] {
+  background: var(--accent);
+  border-radius: 999px;
+}
+mv-tile .seek [data-slot="slider-thumb"] {
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+mv-tile .seek [data-slot="slider-thumb"]:has(:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+mv-tile:fullscreen {
+  border-radius: 0;
+}
+@container (max-width:250px) {
+  mv-tile .controls .extra,
+  mv-tile .seek {
+    display: none !important;
+  }
+}
+mv-tile .controls button[hidden] {
+  display: none;
+}
+@container (min-width:250.01px) and (max-width:400px) {
+  mv-tile .controls {
+    gap: 4px;
+    flex-wrap: wrap-reverse;
+    right: 6px;
+  }
+  mv-tile .controls [data-slot="toolbar"] {
+    gap: 4px;
+  }
+  mv-tile .controls button {
+    width: 34px;
+    height: 34px;
+  }
+  mv-tile .seek {
+    bottom: 44px;
+  }
+}

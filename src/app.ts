@@ -5,6 +5,7 @@ import type {
   UiFieldElement,
   UiSegmentedControlElement,
   UiSelectElement,
+  UiSliderElement,
   UiChangeEvent,
   UiSwitchElement,
   UiToggleElement
@@ -78,6 +79,11 @@ type Tile = {
     handT: UiToggleElement
     zoomIcon: HTMLElement
     grip: HTMLButtonElement
+    back: HTMLButtonElement
+    forward: HTMLButtonElement
+    full: HTMLButtonElement
+    seek: UiSliderElement
+    seekThumb: HTMLElement
     hand: HTMLButtonElement
     live: HTMLButtonElement
     target: HTMLButtonElement
@@ -198,6 +204,10 @@ function paint() {
     ui.zoom.setAttribute("aria-label", `${name}を大きく表示`)
     ui.zoomIcon.innerHTML = big ? icons.shrink : icons.grow
     ui.grip.setAttribute("aria-label", `${name}を移動`)
+    ui.back.setAttribute("aria-label", `${name}を10秒戻す`)
+    ui.forward.setAttribute("aria-label", `${name}を10秒進める`)
+    ui.full.setAttribute("aria-label", `${name}を全画面で表示`)
+    ui.seekThumb.setAttribute("aria-label", `${name}の再生位置`)
     ui.hand.setAttribute("aria-label", `${name}をYouTubeで直接操作(広告のスキップなど)`)
     ui.title.textContent = name
     ui.play.innerHTML = t.userPaused ? icons.play : icons.pause
@@ -266,12 +276,16 @@ function makeTile(id: string): Tile {
     <div class="ended"><p>配信が終わったか、再生できなくなりました。</p><button type="button" data-variant="solid" class="endremove">一覧から外す</button></div>
     <button type="button" class="target"></button>
     <div class="direct" role="status"><span>YouTubeを操作中</span><button type="button" class="directEnd">終わる</button></div>
+    <ui-slider class="seek" min="0" max="1" step="1"><ui-slider-control><ui-slider-track><ui-slider-indicator></ui-slider-indicator><ui-slider-thumb></ui-slider-thumb></ui-slider-track></ui-slider-control></ui-slider>
     <div class="controls">
       <button type="button" class="play"></button>
+      <button type="button" class="back extra">${icons.back}</button>
+      <button type="button" class="forward extra">${icons.forward}</button>
       <ui-toggle class="soundT"><button type="button" class="sound">${icons.sound}</button></ui-toggle>
       <ui-toggle class="zoomT"><button type="button" class="zoom"><span class="zi"></span></button></ui-toggle>
       <mv-handle><button type="button" class="grip">${icons.grip}</button></mv-handle>
       <ui-toggle class="handT"><button type="button" class="hand">${icons.hand}</button></ui-toggle>
+      <button type="button" class="full extra">${icons.full}</button>
     </div>`
   let hideTimer = 0
   const reveal = () => {
@@ -299,6 +313,11 @@ function makeTile(id: string): Tile {
       handT: q(el, ".handT"),
       zoomIcon: q(el, ".zi"),
       grip: q(el, ".grip"),
+      back: q(el, ".back"),
+      forward: q(el, ".forward"),
+      full: q(el, ".full"),
+      seek: q(el, ".seek"),
+      seekThumb: q(el, "ui-slider-thumb"),
       hand: q(el, ".hand"),
       live: q(el, ".live"),
       target: q(el, ".target"),
@@ -317,6 +336,23 @@ function makeTile(id: string): Tile {
     toast("最新の位置に合わせました")
   })
   ui.target.addEventListener("click", () => finishMove(id))
+  const skip = (seconds: number) => {
+    const p = t.player
+    if (!p?.seekTo) return
+    p.seekTo(Math.max(0, p.getCurrentTime() + seconds), true)
+    // 戻した分は遅れとして数え、進めた分は取り戻したものとして引く
+    if (t.isLive) t.delay = Math.max(0, t.delay - seconds)
+  }
+  ui.back.addEventListener("click", () => skip(-10))
+  ui.forward.addEventListener("click", () => skip(10))
+  ui.seek.addEventListener("valuecommit", () => {
+    const value = ui.seek.value
+    if (typeof value === "number") t.player?.seekTo(value, true)
+  })
+  ui.full.hidden = !document.fullscreenEnabled
+  ui.full.addEventListener("click", () => {
+    void (document.fullscreenElement === el ? document.exitFullscreen() : el.requestFullscreen())
+  })
   q(el, ".endremove").addEventListener("click", () => {
     const name = nameOf(id)
     ids = ids.filter((x) => x !== id)
@@ -753,6 +789,19 @@ resizes.observe(board)
 resizes.observe(board.parentElement!)
 
 // iPadのSafariは、音声付きの動画を再生すると他の動画を止めることがある。無音の動画が止まっていたら再生し直す
+// 録画の動画は再生位置のバーを出す。ライブ配信は配信の長さが信用できないので出さない
+every("1 seconds", () => {
+  for (const t of tiles.values()) {
+    const p = t.player
+    const duration = p?.getDuration?.() ?? 0
+    const seekable = !t.isLive && duration > 0
+    t.el.toggleAttribute("data-seekable", seekable)
+    if (!p || !seekable || t.el.querySelector("ui-slider [data-dragging]")) continue
+    t.ui.seek.max = Math.floor(duration)
+    t.ui.seek.value = Math.floor(p.getCurrentTime())
+  }
+})
+
 every("3 seconds", () => {
   if (ytControls()) return
   for (const [id, t] of tiles) {

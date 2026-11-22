@@ -99,3 +99,24 @@ test("遅れが出ると動画に遅れの表示が出て、押すと最新に�
   await chip.click()
   await expect.poll(async () => (await player(page, first)).calls).toContain("seekTo")
 })
+
+test("10秒戻すと10秒進めるで再生位置が動く", async ({ page }) => {
+  await openApp(page, [first, second])
+  await press(page, first, ".back")
+  await expect.poll(async () => (await player(page, first)).behind).toBeGreaterThan(9)
+  await press(page, first, ".forward")
+  await expect.poll(async () => (await player(page, first)).behind).toBeLessThan(2)
+})
+
+test("録画の動画には再生位置のバーが出て、キーボードで動かせる。ライブ配信には出ない", async ({ page }) => {
+  await openApp(page, [first, second])
+  await tweak(page, first, { live: false })
+  const recorded = tile(page, first)
+  await expect(recorded).toHaveAttribute("data-seekable", "", { timeout: 8000 })
+  await expect(tile(page, second).locator(".seek")).toBeHidden()
+  await press(page, first, ".play")
+  const before = (await player(page, first)).calls.length
+  await recorded.locator(".seek input").focus()
+  await page.keyboard.press("ArrowLeft")
+  await expect.poll(async () => (await player(page, first)).calls.slice(before)).toContain("seekTo")
+})

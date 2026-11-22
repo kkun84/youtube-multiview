@@ -4,3 +4,5 @@ minimumReleaseAgeExclude:
   - "@ui-sdk/web"
 allowBuilds:
   lefthook: true
+overrides:
+  katex: 0.18.11

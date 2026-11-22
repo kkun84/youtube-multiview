@@ -126,7 +126,7 @@ test("小さい動画でも、操作ボタンは動画の枠の中に収まる",
   await settle(page)
   const small = await showControls(page, fourth)
   const frame = await box(small)
-  for (const button of await small.locator(".controls button").all()) {
+  for (const button of await small.locator(".controls button:visible").all()) {
     const r = await box(button)
     expect(r.x).toBeGreaterThanOrEqual(frame.x)
     expect(r.x + r.width).toBeLessThanOrEqual(frame.x + frame.width + 0.5)

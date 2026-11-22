@@ -12,6 +12,7 @@ type FakePlayer = {
   calls: string[]
   change: (state: number) => void
   getCurrentTime: () => number
+  live: boolean
 }
 type FakeWindow = { fakeYouTube: { byVideo: (id: string) => FakePlayer } }
 
@@ -58,7 +59,7 @@ export const player = (page: Page, videoId: string): Promise<Pick<FakePlayer, "m
     return { muted: found.muted, state: found.state, behind: found.behind, calls: [...found.calls] }
   }, videoId)
 
-type Tweak = { behind: number } | { state: number } | { frozenAt: number }
+type Tweak = { behind: number } | { state: number } | { frozenAt: number } | { live: boolean }
 
 /** 偽のプレーヤーの状態を外から変える */
 export const tweak = (page: Page, videoId: string, change: Tweak): Promise<void> =>
@@ -67,6 +68,7 @@ export const tweak = (page: Page, videoId: string, change: Tweak): Promise<void>
       const found = (window as unknown as FakeWindow).fakeYouTube.byVideo(id)
       if ("behind" in wanted) found.behind = wanted.behind
       if ("state" in wanted) found.change(wanted.state)
+      if ("live" in wanted) found.live = wanted.live
       if ("frozenAt" in wanted) found.getCurrentTime = () => wanted.frozenAt
     },
     [videoId, change] as const

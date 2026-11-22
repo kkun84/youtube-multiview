@@ -15,6 +15,7 @@
       this.state = State.UNSTARTED
       this.muted = false
       this.behind = 0
+      this.live = true
       this.calls = []
       players.set(id, this)
       setTimeout(() => options.events.onReady({ target: this }), 0)
@@ -58,7 +59,7 @@
       return 1
     }
     getVideoData() {
-      return { isLive: true, title: `配信 ${this.videoId}` }
+      return { isLive: this.live, title: `配信 ${this.videoId}` }
     }
     getIframe() {
       return this.frame
