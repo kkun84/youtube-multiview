@@ -1,6 +1,14 @@
 import { announce } from "@ui-sdk/core"
 import { toast } from "@ui-sdk/web"
-import type { UiDialogElement, UiFieldElement, UiSegmentedControlElement, UiSelectElement, UiChangeEvent, UiSwitchElement, UiToggleElement } from "@ui-sdk/web"
+import type {
+  UiDialogElement,
+  UiFieldElement,
+  UiSegmentedControlElement,
+  UiSelectElement,
+  UiChangeEvent,
+  UiSwitchElement,
+  UiToggleElement
+} from "@ui-sdk/web"
 import { icons } from "./icons"
 import { arrange, colChoices, type LayoutMode } from "./layout"
 import { liveTarget, nextDelay, visibleDelay, type Sample } from "./live-delay"
@@ -28,8 +36,8 @@ function every(interval: `${number} seconds`, fn: () => void) {
   Effect.runFork(
     Effect.try(fn).pipe(
       Effect.catch((e) => Effect.logWarning("定期処理に失敗しました", e)),
-      Effect.repeat(Schedule.spaced(interval)),
-    ),
+      Effect.repeat(Schedule.spaced(interval))
+    )
   )
 }
 
@@ -61,7 +69,20 @@ type Tile = {
   delay: number
   behind: number
   lastSample: Sample | null
-  ui: { play: HTMLButtonElement; sound: HTMLButtonElement; zoom: HTMLButtonElement; soundT: UiToggleElement; zoomT: UiToggleElement; handT: UiToggleElement; zoomIcon: HTMLElement; grip: HTMLButtonElement; hand: HTMLButtonElement; live: HTMLButtonElement; target: HTMLButtonElement; title: HTMLElement }
+  ui: {
+    play: HTMLButtonElement
+    sound: HTMLButtonElement
+    zoom: HTMLButtonElement
+    soundT: UiToggleElement
+    zoomT: UiToggleElement
+    handT: UiToggleElement
+    zoomIcon: HTMLElement
+    grip: HTMLButtonElement
+    hand: HTMLButtonElement
+    live: HTMLButtonElement
+    target: HTMLButtonElement
+    title: HTMLElement
+  }
 }
 
 /* ---------- 状態 ---------- */
@@ -107,7 +128,13 @@ function setOrder(next: string[]) {
 }
 
 /* ---------- 並べ方 ---------- */
+let layoutQueued = 0
+/** 配置を次の描画の直前に計算し直す。操作バーの作り直しの途中の高さを読まないようにする */
 function layout() {
+  cancelAnimationFrame(layoutQueued)
+  layoutQueued = requestAnimationFrame(layoutNow)
+}
+function layoutNow() {
   // 縦長の画面でチャットを開いているときは、動画に必要な高さだけを使い、残りをチャットに渡す
   const stage = board.parentElement!
   const stacked = !$("chat").hasAttribute("hidden") && window.matchMedia("(orientation:portrait)").matches
@@ -135,7 +162,7 @@ function renderLayoutChoices() {
   const choices: [LayoutMode, string][] = [
     ["auto", "自動"],
     ...(n > 1 ? colChoices(n).map((c): [LayoutMode, string] => [c, c === n ? "横一列" : `${c}列`]) : []),
-    ...(n > 2 ? [["focus", "大きく"] as [LayoutMode, string]] : []),
+    ...(n > 2 ? [["focus", "大きく"] as [LayoutMode, string]] : [])
   ]
   if (!choices.some(([v]) => v === layoutMode)) layoutMode = "auto"
   seg.innerHTML =
@@ -275,8 +302,8 @@ function makeTile(id: string): Tile {
       hand: q(el, ".hand"),
       live: q(el, ".live"),
       target: q(el, ".target"),
-      title: q(el, ".tile-title"),
-    },
+      title: q(el, ".tile-title")
+    }
   }
   const { ui } = t
   onPress(ui.soundT, () => setAudio(id))
@@ -365,7 +392,15 @@ function makeTile(id: string): Tile {
   t.player = new YT.Player(key, {
     videoId: id,
     // YouTube側の操作表示(左上のタイトルや下の操作バー)は、操作パネルを使う設定のときだけ出す
-    playerVars: { autoplay: 1, mute: 1, playsinline: 1, rel: 0, iv_load_policy: 3, controls: ytControls() ? 1 : 0, disablekb: ytControls() ? 0 : 1 },
+    playerVars: {
+      autoplay: 1,
+      mute: 1,
+      playsinline: 1,
+      rel: 0,
+      iv_load_policy: 3,
+      controls: ytControls() ? 1 : 0,
+      disablekb: ytControls() ? 0 : 1
+    },
     events: {
       onReady: (e) => {
         e.target.mute()
@@ -386,25 +421,24 @@ function makeTile(id: string): Tile {
           paint()
         }
         el.toggleAttribute("data-ended", e.data === YT.PlayerState.ENDED && t.isLive)
-      },
-    },
+      }
+    }
   })
   return t
 }
 
-function render() {
-  if (!ytReady) return
-  for (const [id, t] of tiles) {
-    if (ids.includes(id)) continue
-    try {
-      t.player?.destroy()
-    } catch {
-      // すでに壊れていても枠は外す
-    }
-    t.el.remove()
-    tiles.delete(id)
-    if (audioId === id) audioId = null
+function removeTile(id: string, t: Tile) {
+  try {
+    t.player?.destroy()
+  } catch {
+    // すでに壊れていても枠は外す
   }
+  t.el.remove()
+  tiles.delete(id)
+  if (audioId === id) audioId = null
+}
+function syncTiles() {
+  for (const [id, t] of tiles) if (!ids.includes(id)) removeTile(id, t)
   const firstVisit = storage.get("mv-seen", "0") !== "1"
   for (const id of ids) {
     if (tiles.has(id)) continue
@@ -413,10 +447,17 @@ function render() {
     if (firstVisit) t.reveal()
   }
   storage.set("mv-seen", "1")
+}
+function render() {
+  if (!ytReady) return
+  syncTiles()
   setOrder(ids)
   board.querySelector(".empty")?.remove()
   if (!ids.length) {
-    board.insertAdjacentHTML("beforeend", '<div class="empty"><p>見たい動画を追加してください。</p><ui-button><button data-variant="solid">動画を追加する</button></ui-button></div>')
+    board.insertAdjacentHTML(
+      "beforeend",
+      '<div class="empty"><p>見たい動画を追加してください。</p><ui-button><button data-variant="solid">動画を追加する</button></ui-button></div>'
+    )
     q(board, ".empty button").addEventListener("click", openDialog)
   }
   if (moveSource && !ids.includes(moveSource)) cancelMove("")
@@ -470,7 +511,7 @@ function renderList() {
       <button type="button" class="ic up">${icons.up}</button>
       <button type="button" class="ic down">${icons.down}</button>
       <ui-button><button type="button" class="del">削除</button></ui-button>
-    </mv-list-item>`,
+    </mv-list-item>`
       )
       .join("")
     for (const item of items()) {
@@ -487,7 +528,7 @@ function renderList() {
         ids = ids.filter((x) => x !== id)
         render()
         announce(`${name}を削除しました`)
-        const rest = items().sort((a, b) => Number(a.dataset.index) - Number(b.dataset.index))
+        const rest = items().sort((a, b) => Number(a.dataset["index"]) - Number(b.dataset["index"]))
         ;(rest[Math.min(i, rest.length - 1)]?.querySelector<HTMLElement>(".del") ?? $("addInput")).focus()
       })
     }
@@ -561,8 +602,8 @@ function measureLive() {
     const p = t.player
     if (!p?.getCurrentTime) continue
     t.isLive = Boolean((p.getVideoData?.() as { isLive?: boolean } | undefined)?.isLive)
-    const sample = { position: p.getCurrentTime(), at }
-    if (t.isLive) t.delay = nextDelay(t.delay, t.lastSample, sample, p.getPlaybackRate?.() || 1)
+    const sample = { at, playing: p.getPlayerState() === YT.PlayerState.PLAYING }
+    if (t.isLive) t.delay = nextDelay(t.delay, t.lastSample, sample)
     t.lastSample = sample
     const shown = t.isLive ? visibleDelay(t.delay) : 0
     if (Math.abs(shown - t.behind) >= 1 || (shown === 0) !== (t.behind === 0)) {
@@ -592,7 +633,7 @@ function toLive(t: Tile) {
         p.seekTo(p.getDuration() - 2, true)
         t.lastSample = null
       }
-    }).pipe(Effect.delay("4 seconds")),
+    }).pipe(Effect.delay("4 seconds"))
   )
 }
 $("toLive").addEventListener("click", () => {
@@ -643,7 +684,9 @@ addEventListener("keydown", (e) => {
 function renderChatChoices() {
   const select = $<UiSelectElement>("chatSelect")
   if (!chatId || !ids.includes(chatId)) chatId = audioId && ids.includes(audioId) ? audioId : (ids[0] ?? null)
-  q(select, "ui-select-content").innerHTML = ids.map((id) => `<ui-select-item value="${id}">${escapeHtml(nameOf(id))}</ui-select-item>`).join("")
+  q(select, "ui-select-content").innerHTML = ids
+    .map((id) => `<ui-select-item value="${id}">${escapeHtml(nameOf(id))}</ui-select-item>`)
+    .join("")
   void customElements.whenDefined("ui-select").then(() => {
     if (chatId) select.value = chatId
   })
@@ -663,7 +706,7 @@ function setChat(open: boolean) {
   $<UiToggleElement>("chatToggle").pressed = open
   if (open) renderChatChoices()
   else $("chatFrame").removeAttribute("src")
-  requestAnimationFrame(layout)
+  layout()
   storage.set("mv-chat", open ? "1" : "0")
 }
 onPress($("chatToggle"), setChat)
@@ -749,12 +792,12 @@ export async function start() {
       Effect.catchTag("YouTubeApiError", (e) =>
         Effect.sync(() => {
           toast.error(e.reason === "timeout" ? "YouTubeの読み込みに時間がかかっています" : "YouTubeを読み込めませんでした", {
-            description: "ネットワークを確かめて、ページを開き直してください",
+            description: "ネットワークを確かめて、ページを開き直してください"
           })
           return false
-        }),
-      ),
-    ),
+        })
+      )
+    )
   )
   if (!loaded) return
   ytReady = true

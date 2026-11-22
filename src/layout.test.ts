@@ -31,7 +31,11 @@ describe("arrange", () => {
 
   test("どの枠も16:9で、画面からはみ出さない", () => {
     for (const mode of ["auto", 1, 2, 4, "focus"] as const) {
-      for (const [W, H] of [[382, 700], [812, 1100], [1172, 760]] as const) {
+      for (const [W, H] of [
+        [382, 700],
+        [812, 1100],
+        [1172, 760]
+      ] as const) {
         for (const r of arrange(ids, mode, "c", W, H, 4)) {
           expect(r.w / r.h).toBeCloseTo(16 / 9, 5)
           expect(r.x).toBeGreaterThanOrEqual(-0.01)

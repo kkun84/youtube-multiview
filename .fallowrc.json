@@ -1,0 +1,30 @@
+{
+  "$schema": "./node_modules/fallow/schema.json",
+  "entry": [
+    "src/styles.css",
+    "scripts/*.ts",
+    "src/**/*.test.ts",
+    "test/**/*.spec.ts",
+    "playwright.config.ts",
+    "vitest.config.ts",
+    "vite.config.ts"
+  ],
+  "ignorePatterns": [".mutator/**", "test/support/fake-youtube.js"],
+  "ignoreDependencies": ["@effect/tsgo", "@effect/language-service"],
+  "duplicates": {
+    "mode": "mild",
+    "minTokens": 40,
+    "minLines": 4,
+    "ignoreDefaults": false,
+    "threshold": 0.001
+  },
+  "rules": {
+    "unused-dev-dependencies": "error",
+    "dev-dependencies-in-production": "off"
+  },
+  "health": {
+    "maxCyclomatic": 20,
+    "maxCognitive": 15,
+    "maxCrap": 0
+  }
+}

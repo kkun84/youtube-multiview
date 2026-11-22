@@ -1,0 +1,6 @@
+minimumReleaseAge: 4320
+minimumReleaseAgeExclude:
+  - "@ui-sdk/core"
+  - "@ui-sdk/web"
+allowBuilds:
+  lefthook: true

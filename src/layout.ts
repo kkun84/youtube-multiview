@@ -19,7 +19,7 @@ export function colChoices(n: number): number[] {
   return out
 }
 
-export function gridRects(n: number, cols: number, W: number, H: number, gap: number): { size: number; rects: Rect[] } {
+function gridRects(n: number, cols: number, W: number, H: number, gap: number): { size: number; rects: Rect[] } {
   const rows = Math.ceil(n / cols)
   const w = Math.max(0, Math.min((W - gap * (cols - 1)) / cols, ((H - gap * (rows - 1)) / rows) * RATIO))
   const h = w / RATIO
@@ -29,7 +29,7 @@ export function gridRects(n: number, cols: number, W: number, H: number, gap: nu
     x: ox + (i % cols) * (w + gap),
     y: oy + Math.floor(i / cols) * (h + gap),
     w,
-    h,
+    h
   }))
   return { size: w, rects }
 }
@@ -54,8 +54,8 @@ export function focusRects(n: number, W: number, H: number, gap: number): Rect[]
       area: mw * mh,
       rects: [
         { x: (W - mw) / 2, y: oy, w: mw, h: mh },
-        ...Array.from({ length: m }, (_, i) => ({ x: (W - rowW) / 2 + i * (sw + gap), y: oy + mh + gap, w: sw, h: sh })),
-      ],
+        ...Array.from({ length: m }, (_, i) => ({ x: (W - rowW) / 2 + i * (sw + gap), y: oy + mh + gap, w: sw, h: sh }))
+      ]
     })
   }
   {
@@ -73,11 +73,11 @@ export function focusRects(n: number, W: number, H: number, gap: number): Rect[]
       area: mw * mh,
       rects: [
         { x: ox, y: (H - mh) / 2, w: mw, h: mh },
-        ...Array.from({ length: m }, (_, i) => ({ x: ox + mw + gap, y: (H - colH) / 2 + i * (sh + gap), w: sw, h: sh })),
-      ],
+        ...Array.from({ length: m }, (_, i) => ({ x: ox + mw + gap, y: (H - colH) / 2 + i * (sh + gap), w: sw, h: sh }))
+      ]
     })
   }
-  return plans.sort((a, b) => b.area - a.area)[0]!.rects
+  return plans.toSorted((a, b) => b.area - a.area)[0]!.rects
 }
 
 /** 並び順の i 番目の動画を置く枠。focus のときも並び順は変えず、選んだ動画だけを大きい枠に入れる */
@@ -91,5 +91,5 @@ export function arrange(ids: readonly string[], mode: LayoutMode, focused: strin
   if (typeof mode === "number") return gridRects(n, mode, W, H, gap).rects
   return colChoices(n)
     .map((c) => gridRects(n, c, W, H, gap))
-    .sort((a, b) => b.size - a.size)[0]!.rects
+    .toSorted((a, b) => b.size - a.size)[0]!.rects
 }

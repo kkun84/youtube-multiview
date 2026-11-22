@@ -1,19 +1,15 @@
-// ライブ配信の getDuration() と getCurrentTime() の差は、追いついていても数十秒単位で揺れるので遅れの計算に使えない。
-// 代わりに、経過した時間に対して再生位置がどれだけ進まなかったか(一時停止・読み込み待ち・巻き戻し)を足し合わせて遅れとする
+// ライブ配信の getDuration() と getCurrentTime() は、追いついていても数十秒単位で揺れたり、端末によっては進まなかったりするので遅れの計算に使えない。
+// 代わりに、再生が止まっていた時間(一時停止・読み込み待ち)を時計で測って足し合わせ、遅れとする
 
-export type Sample = { position: number; at: number }
-
-/** 再生位置の揺れとみなして無視するずれ(秒) */
-const JITTER = 1.5
+export type Sample = { at: number; playing: boolean }
 
 /** 遅れとして表示し始める秒数 */
-export const SHOW_AFTER = 15
+const SHOW_AFTER = 15
 
-/** 前回の計測からの時計の進みと再生位置の進みを比べ、遅れ(秒)を更新する */
-export function nextDelay(delay: number, prev: Sample | null, now: Sample, rate = 1): number {
-  if (!prev) return delay
-  const drift = prev.position + (now.at - prev.at) * rate - now.position
-  return Math.abs(drift) > JITTER ? Math.max(0, delay + drift) : delay
+/** 前回の計測から今回まで止まり続けていたら、その間の秒数を遅れに足す。計測のあいだの短い読み込み待ちは数えない */
+export function nextDelay(delay: number, prev: Sample | null, now: Sample): number {
+  if (!prev || prev.playing || now.playing) return delay
+  return delay + Math.max(0, now.at - prev.at)
 }
 
 export const visibleDelay = (delay: number): number => (delay > SHOW_AFTER ? delay : 0)

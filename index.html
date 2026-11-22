@@ -1,88 +1,195 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ja">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0d0f14">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="同時視聴">
-<link rel="manifest" href="./manifest.webmanifest">
-<link rel="apple-touch-icon" href="./apple-touch-icon.png">
-<title>YouTube同時視聴</title>
-<script type="module" src="./src/main.ts"></script>
-</head>
-<body>
-<div class="bar">
-  <ui-toolbar aria-label="操作">
-    <ui-toolbar-button><button id="openList"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M3 6h12M3 12h12M3 18h8M19 15v6M16 18h6"/></svg><span class="lbl">動画の追加・削除</span></button></ui-toolbar-button>
-    <ui-toolbar-button><button id="playAll"><span class="pi"></span><span class="lbl" id="playAllLabel">全部を一時停止</span></button></ui-toolbar-button>
-    <ui-toolbar-button><button id="toLive"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><circle cx="12" cy="12" r="2.5" fill="currentColor"/><path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2"/></svg><span class="lbl">全部を最新の位置へ</span></button></ui-toolbar-button>
-    <ui-toggle id="chatToggle"><button id="chatBtn" aria-controls="chat"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/></svg><span class="lbl">ライブチャット</span></button></ui-toggle>
-    <ui-toolbar-button><button id="muteAll"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4z"/><path d="m16 9 5 6m0-6-5 6"/></svg><span class="lbl">全部を消音</span></button></ui-toolbar-button>
-  </ui-toolbar>
-  <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
-</div>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="theme-color" content="#0d0f14" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="同時視聴" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <title>YouTube同時視聴</title>
+    <script type="module" src="./src/main.ts"></script>
+  </head>
+  <body>
+    <header class="bar">
+      <h1 class="sr">YouTube同時視聴</h1>
+      <ui-toolbar aria-label="操作">
+        <ui-toolbar-button
+          ><button id="openList">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M3 6h12M3 12h12M3 18h8M19 15v6M16 18h6" /></svg
+            ><span class="lbl">動画の追加・削除</span>
+          </button></ui-toolbar-button
+        >
+        <ui-toolbar-button
+          ><button id="playAll">
+            <span class="pi"></span><span class="lbl" id="playAllLabel">全部を一時停止</span>
+          </button></ui-toolbar-button
+        >
+        <ui-toolbar-button
+          ><button id="toLive">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <circle cx="12" cy="12" r="2.5" fill="currentColor" />
+              <path d="M7.8 7.8a6 6 0 0 0 0 8.4M16.2 7.8a6 6 0 0 1 0 8.4M4.9 4.9a10 10 0 0 0 0 14.2M19.1 4.9a10 10 0 0 1 0 14.2" /></svg
+            ><span class="lbl">全部を最新の位置へ</span>
+          </button></ui-toolbar-button
+        >
+        <ui-toggle id="chatToggle"
+          ><button id="chatBtn" aria-controls="chat">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M4 5h16v11H9l-5 4z" /></svg
+            ><span class="lbl">ライブチャット</span>
+          </button></ui-toggle
+        >
+        <ui-toolbar-button
+          ><button id="muteAll">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <path d="M11 5 6 9H3v6h3l5 4z" />
+              <path d="m16 9 5 6m0-6-5 6" /></svg
+            ><span class="lbl">全部を消音</span>
+          </button></ui-toolbar-button
+        >
+      </ui-toolbar>
+      <ui-segmented-control class="seg" id="layout" aria-label="並び方"></ui-segmented-control>
+    </header>
 
-<div class="movebar" id="updatebar" role="status" hidden><span>新しい版があります。</span><button type="button" id="updateNow">更新する</button></div>
-<div class="movebar" id="movebar" role="status" hidden><span id="moveText"></span><button type="button" id="moveCancel">やめる</button></div>
-<div class="stage">
-<mv-board id="board" aria-label="並んでいる動画" aria-describedby="moveHelp"></mv-board>
-<aside class="chat" id="chat" aria-label="ライブチャット" hidden>
-  <div class="chathead">
-    <ui-select id="chatSelect">
-      <ui-select-trigger><button aria-label="チャットを表示する配信"><ui-select-value></ui-select-value></button></ui-select-trigger>
-      <ui-select-content hidden></ui-select-content>
-    </ui-select>
-    <a id="chatOpen" href="https://www.youtube.com/" target="_blank" rel="noopener">YouTubeで開く</a>
-    <button type="button" class="x" id="chatClose" aria-label="ライブチャットを閉じる"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
-  </div>
-  <iframe id="chatFrame" title="ライブチャット"></iframe>
-  <p class="hint">チャットが表示されないときは「YouTubeで開く」から見てください。YouTubeの仕様で、スマホのブラウザでは埋め込みのチャットが出ないことがあります。</p>
-</aside>
-</div>
-<p class="sr" id="moveHelp">各動画の移動ボタンでスペースキーを押すと持ち上がり、矢印キーで場所を選んで、もう一度スペースキーで置きます。Escapeキーで取り消せます。</p>
-
-<ui-dialog id="dialog">
-  <ui-dialog-backdrop hidden></ui-dialog-backdrop>
-  <ui-dialog-content initial-focus="#dialogTitle" hidden>
-    <ui-dialog-title id="dialogTitle" tabindex="-1">見る動画</ui-dialog-title>
-    <ui-dialog-description>YouTubeの動画や配信を9つまで並べられます。映像は全部同時に流れ、音は選んだ1つだけ出ます。</ui-dialog-description>
-    <mv-list class="list" id="list" orientation="vertical" aria-label="並べる動画" aria-describedby="moveHelp"></mv-list>
-    <p class="hint" id="emptyList" hidden>まだ動画がありません。</p>
-    <form class="addrow" id="addForm" novalidate>
-      <ui-field id="addField">
-        <ui-field-label>動画のURLを追加</ui-field-label>
-        <ui-input><input id="addInput" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="https://www.youtube.com/watch?v=…"></ui-input>
-        <ui-field-error match="true"><span id="addError"></span></ui-field-error>
-      </ui-field>
-      <ui-button><button type="submit" data-variant="solid">追加</button></ui-button>
-    </form>
-    <div class="opt">
-      <ui-field>
-        <ui-switch id="ytSwitch"><ui-switch-thumb></ui-switch-thumb></ui-switch>
-        <ui-field-label>YouTubeの操作パネルを使う</ui-field-label>
-      </ui-field>
+    <div class="movebar" id="updatebar" role="status" hidden>
+      <span>新しい版があります。</span><button type="button" id="updateNow">更新する</button>
     </div>
-    <p class="hint">動画を1回タップすると、再生・音声・拡大・移動のボタンが出ます。ダブルタップするとその動画を大きく表示し、もう一度ダブルタップで元に戻ります。移動ボタンをタップすると、移動先をタップで選べます。移動ボタンをドラッグしても並べ替えられます。</p>
-    <p class="hint">「YouTubeの操作パネルを使う」をオンにすると画質の変更などができますが、動画のタップで一時停止し、ダブルタップで10秒移動します。</p>
-    <p class="hint" id="versionText"></p>
-    <div class="row">
-      <ui-button id="checkUpdate"><button>最新版を確認</button></ui-button>
-      <ui-button id="preset"><button>篝火#16の4配信に戻す</button></ui-button>
-      <ui-dialog-close><button data-variant="solid">閉じる</button></ui-dialog-close>
+    <div class="movebar" id="movebar" role="status" hidden>
+      <span id="moveText"></span><button type="button" id="moveCancel">やめる</button>
     </div>
-  </ui-dialog-content>
-</ui-dialog>
+    <main class="stage">
+      <mv-board id="board" aria-label="並んでいる動画" aria-describedby="moveHelp"></mv-board>
+      <aside class="chat" id="chat" aria-label="ライブチャット" hidden>
+        <div class="chathead">
+          <ui-select id="chatSelect">
+            <ui-select-trigger
+              ><button aria-label="チャットを表示する配信"><ui-select-value></ui-select-value></button
+            ></ui-select-trigger>
+            <ui-select-content hidden></ui-select-content>
+          </ui-select>
+          <a id="chatOpen" href="https://www.youtube.com/" target="_blank" rel="noopener">YouTubeで開く</a>
+          <button type="button" class="x" id="chatClose" aria-label="ライブチャットを閉じる">
+            <svg
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              aria-hidden="true"
+            >
+              <path d="M6 6l12 12M18 6 6 18" />
+            </svg>
+          </button>
+        </div>
+        <iframe id="chatFrame" title="ライブチャット"></iframe>
+        <p class="hint">
+          チャットが表示されないときは「YouTubeで開く」から見てください。YouTubeの仕様で、スマホのブラウザでは埋め込みのチャットが出ないことがあります。
+        </p>
+      </aside>
+      <p class="sr" id="moveHelp">
+        各動画の移動ボタンでスペースキーを押すと持ち上がり、矢印キーで場所を選んで、もう一度スペースキーで置きます。Escapeキーで取り消せます。
+      </p>
+    </main>
 
-<ui-toast-region id="toasts" side="bottom" align="center">
-  <template>
-    <ui-toast>
-      <ui-toast-title></ui-toast-title>
-      <ui-toast-description></ui-toast-description>
-    </ui-toast>
-  </template>
-</ui-toast-region>
-</body>
+    <ui-dialog id="dialog">
+      <ui-dialog-backdrop hidden></ui-dialog-backdrop>
+      <ui-dialog-content initial-focus="#dialogTitle" hidden>
+        <ui-dialog-title id="dialogTitle" tabindex="-1">見る動画</ui-dialog-title>
+        <ui-dialog-description
+          >YouTubeの動画や配信を9つまで並べられます。映像は全部同時に流れ、音は選んだ1つだけ出ます。</ui-dialog-description
+        >
+        <mv-list class="list" id="list" orientation="vertical" aria-label="並べる動画" aria-describedby="moveHelp"></mv-list>
+        <p class="hint" id="emptyList" hidden>まだ動画がありません。</p>
+        <form class="addrow" id="addForm" novalidate>
+          <ui-field id="addField">
+            <ui-field-label>動画のURLを追加</ui-field-label>
+            <ui-input
+              ><input
+                id="addInput"
+                type="text"
+                inputmode="url"
+                autocomplete="off"
+                autocapitalize="off"
+                spellcheck="false"
+                enterkeyhint="done"
+                placeholder="https://www.youtube.com/watch?v=…"
+            /></ui-input>
+            <ui-field-error match="true"><span id="addError"></span></ui-field-error>
+          </ui-field>
+          <ui-button><button type="submit" data-variant="solid">追加</button></ui-button>
+        </form>
+        <div class="opt">
+          <ui-field>
+            <ui-switch id="ytSwitch"><ui-switch-thumb></ui-switch-thumb></ui-switch>
+            <ui-field-label>YouTubeの操作パネルを使う</ui-field-label>
+          </ui-field>
+        </div>
+        <p class="hint">
+          動画を1回タップすると、再生・音声・拡大・移動のボタンが出ます。ダブルタップするとその動画を大きく表示し、もう一度ダブルタップで元に戻ります。移動ボタンをタップすると、移動先をタップで選べます。移動ボタンをドラッグしても並べ替えられます。
+        </p>
+        <p class="hint">
+          「YouTubeの操作パネルを使う」をオンにすると画質の変更などができますが、動画のタップで一時停止し、ダブルタップで10秒移動します。
+        </p>
+        <p class="hint" id="versionText"></p>
+        <div class="row">
+          <ui-button id="checkUpdate"><button>最新版を確認</button></ui-button>
+          <ui-button id="preset"><button>篝火#16の4配信に戻す</button></ui-button>
+          <ui-dialog-close><button data-variant="solid">閉じる</button></ui-dialog-close>
+        </div>
+      </ui-dialog-content>
+    </ui-dialog>
+
+    <ui-toast-region id="toasts" side="bottom" align="center">
+      <template>
+        <ui-toast>
+          <ui-toast-title></ui-toast-title>
+          <ui-toast-description></ui-toast-description>
+        </ui-toast>
+      </template>
+    </ui-toast-region>
+  </body>
 </html>

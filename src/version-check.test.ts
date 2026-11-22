@@ -4,7 +4,11 @@ import { latestVersion } from "./version-check"
 
 afterEach(() => vi.unstubAllGlobals())
 
-const respond = (body: unknown) => vi.stubGlobal("fetch", vi.fn(async () => new Response(JSON.stringify(body))))
+const respond = (body: unknown) =>
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(() => Promise.resolve(new Response(JSON.stringify(body))))
+  )
 
 describe("latestVersion", () => {
   it("公開中の版番号を返す", async () => {
@@ -16,7 +20,10 @@ describe("latestVersion", () => {
     expect(await Effect.runPromise(latestVersion)).toEqual(Option.none())
   })
   it("通信に失敗したら None", async () => {
-    vi.stubGlobal("fetch", vi.fn(async () => Promise.reject(new TypeError("offline"))))
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.reject(new TypeError("offline")))
+    )
     expect(await Effect.runPromise(latestVersion)).toEqual(Option.none())
   })
 })

@@ -2,7 +2,7 @@
 
 YouTubeの動画や配信を1画面に並べて、同時に再生するページです。iPadやiPhoneのホーム画面に追加して、アプリのように使うことを想定しています。
 
-https://kkun84.github.io/youtube-multiview/
+<https://kkun84.github.io/youtube-multiview/>
 
 ## 使い方
 

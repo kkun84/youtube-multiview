@@ -13,5 +13,5 @@ export const storage = {
     } catch {
       // 保存できなくても続ける
     }
-  },
+  }
 }

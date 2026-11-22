@@ -26,14 +26,14 @@ function reorderText(m: ReorderMessage): string {
 }
 
 // 並べ替えはUI SDKのcreateReorderに任せる。iframeは動かすと読み込み直しになるので、DOMの順番は変えず、data-indexで表示位置だけを変える
-export const sortable = definePrimitive({
+const sortable = definePrimitive({
   name: "sortable-board",
   options: {
     value: "list",
     defaultValue: "list",
     onValueChange: "callback",
     labelOf: "value",
-    orientation: "string",
+    orientation: "string"
   },
   controlled: ["value"],
   state: (o: SortableOptions) => ({ value: o.value ?? o.defaultValue ?? [], moving: null as ReorderDraft | null }),
@@ -47,7 +47,7 @@ export const sortable = definePrimitive({
       set: (value, details) => change("value", value, details),
       orientation: () => context.options().orientation ?? "grid",
       label: (key) => context.options().labelOf?.(key),
-      message: reorderText,
+      message: reorderText
     })
     return { reorder, move: (key: string, index: number) => reorder.move(key, index) }
   },
@@ -59,9 +59,9 @@ export const sortable = definePrimitive({
       attrs: (state, part) => ({
         "data-index": String(part.api.reorder.order(state).indexOf(part.key)),
         "data-grabbed": part.api.reorder.moving(state, part.key) ? "" : undefined,
-        "data-dragging": part.api.reorder.dragging(state, part.key) ? "" : undefined,
+        "data-dragging": part.api.reorder.dragging(state, part.key) ? "" : undefined
       }),
-      bind: (el, part) => part.api.reorder.bind(el, part),
+      bind: (el, part) => part.api.reorder.bind(el, part)
     }),
     handle: slot<{ value: string }>({
       props: { value: { kind: "key", from: "tile", required: true } },
@@ -73,24 +73,24 @@ export const sortable = definePrimitive({
         keydown: (event, { api, key }) => {
           api.reorder.keydown(event as KeyboardEvent, key)
         },
-        pointerdown: (event, { api, key }) => api.reorder.pointerdown(event as PointerEvent, key),
-      },
-    }),
+        pointerdown: (event, { api, key }) => api.reorder.pointerdown(event as PointerEvent, key)
+      }
+    })
   }),
-  agent: { actions: ["move"] },
+  agent: { actions: ["move"] }
 })
 
 createParts(sortable, {
   root: "mv-board",
   tile: "mv-tile",
-  handle: { tag: "mv-handle", target: wrappedButton, display: "contents" },
+  handle: { tag: "mv-handle", target: wrappedButton, display: "contents" }
 })
 
 // 一覧画面の並べ替えにも同じ部品を使う。縦に並ぶので orientation="vertical" にする
 createParts(sortable, {
   root: "mv-list",
   tile: "mv-list-item",
-  handle: { tag: "mv-list-handle", target: wrappedButton, display: "contents" },
+  handle: { tag: "mv-list-handle", target: wrappedButton, display: "contents" }
 })
 
 /** mv-board と mv-list の要素。value と labelOf はプロパティで渡す */

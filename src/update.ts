@@ -14,8 +14,8 @@ export function setupUpdates(bar: HTMLElement, updateButton: HTMLElement, checkB
           if (!manual) return
           if (newer) toast("新しい版があります")
           else toast(Option.isSome(latest) ? "最新版です" : "確認できませんでした。ネットワークを確かめてください")
-        }),
-      ),
+        })
+      )
     )
   // HTMLもキャッシュされているので、URLを変えて読み込み直す
   updateButton.addEventListener("click", () => location.replace(`${location.pathname}?v=${Date.now()}${location.hash}`))

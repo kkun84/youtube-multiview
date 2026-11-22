@@ -4,19 +4,37 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc --noEmit && vite build",
-    "test": "vitest run",
-    "typecheck": "tsc --noEmit"
+    "build": "vite build",
+    "typecheck": "node scripts/typecheck.ts",
+    "lint": "oxlint --deny-warnings && oxfmt --check && fallow --fail-on-issues && markdownlint-cli2",
+    "format": "oxfmt",
+    "test:unit": "vitest run",
+    "test": "pnpm test:unit && pnpm test:ui",
+    "check": "pnpm -s lint && pnpm -s typecheck && pnpm -s test:unit && pnpm -s test:ui && pnpm -s budget",
+    "prepare": "lefthook install --reset-hooks-path",
+    "check-env": "node scripts/check-env.ts",
+    "test:ui": "pnpm -s build && playwright test",
+    "budget": "node scripts/budget.ts"
   },
   "dependencies": {
     "@ui-sdk/core": "0.1.0-beta.13",
     "@ui-sdk/web": "0.1.0-beta.13",
-    "effect": "4.1.5"
+    "effect": "4.1.4"
   },
   "devDependencies": {
+    "@axe-core/playwright": "4.14.0",
+    "@effect/tsgo": "0.70.0",
+    "@playwright/test": "1.64.1",
+    "@types/node": "22.20.5",
     "@types/youtube": "0.3.0",
+    "fallow": "3.43.2",
+    "lefthook": "2.2.2",
+    "markdownlint-cli2": "0.24.1",
+    "oxfmt": "0.79.0",
+    "oxlint": "1.94.0",
     "typescript": "7.0.2",
     "vite": "8.3.8",
     "vitest": "5.1.1"
-  }
+  },
+  "packageManager": "pnpm@12.9.0"
 }
