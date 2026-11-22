@@ -76,6 +76,7 @@ mv-tile .controls .grip{cursor:grab}
 mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000}
 
 .empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
+[data-slot="dialog-title"]:focus{outline:none}
 [data-slot="dialog-content"]{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 48px);overflow:auto;display:flex;flex-direction:column;gap:16px}
 .list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
 .list li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;background:var(--raised);border-radius:10px;min-height:48px}
@@ -107,15 +108,15 @@ mv-tile[data-grabbed] .controls .grip{cursor:grabbing;background:#fff;color:#000
 
 <ui-dialog id="dialog">
   <ui-dialog-backdrop hidden></ui-dialog-backdrop>
-  <ui-dialog-content hidden>
-    <ui-dialog-title>見る動画</ui-dialog-title>
+  <ui-dialog-content initial-focus="#dialogTitle" hidden>
+    <ui-dialog-title id="dialogTitle" tabindex="-1">見る動画</ui-dialog-title>
     <ui-dialog-description>YouTubeの動画や配信を9つまで並べられます。映像は全部同時に流れ、音は選んだ1つだけ出ます。</ui-dialog-description>
     <ol class="list" id="list"></ol>
     <form class="addrow" id="addForm" novalidate>
       <ui-field id="addField">
         <ui-field-label>動画のURLを追加</ui-field-label>
-        <ui-input><input id="addInput" type="url" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="https://www.youtube.com/watch?v=…"></ui-input>
-        <ui-field-error match="true" id="addError"></ui-field-error>
+        <ui-input><input id="addInput" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="done" placeholder="https://www.youtube.com/watch?v=…"></ui-input>
+        <ui-field-error match="true"><span id="addError"></span></ui-field-error>
       </ui-field>
       <ui-button><button type="submit" data-variant="solid">追加</button></ui-button>
     </form>
