@@ -109,9 +109,12 @@ mv-tile[data-ended] .ended{display:flex}
 .empty{position:absolute;inset:0;display:flex;flex-direction:column;gap:12px;align-items:center;justify-content:center;color:var(--muted);text-align:center;padding:24px}
 [data-slot="dialog-title"]:focus{outline:none}
 [data-slot="dialog-content"]{width:min(560px,calc(100vw - 24px));max-height:calc(100dvh - 48px);overflow:auto;display:flex;flex-direction:column;gap:16px}
-.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
-.list li{display:flex;align-items:center;gap:10px;padding:6px 6px 6px 10px;background:var(--raised);border-radius:10px;min-height:48px}
-.list .num{color:var(--muted);font-variant-numeric:tabular-nums;min-width:1.2em;text-align:right}
+.list{margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.list mv-list-item{display:flex;align-items:center;gap:6px;padding:4px 4px 4px 4px;background:var(--raised);border-radius:10px;min-height:52px;position:relative}
+.list mv-list-item[data-grabbed]{transform:translate(var(--drag-x,0),var(--drag-y,0));z-index:2;box-shadow:0 8px 24px rgba(0,0,0,.5);outline:2px solid var(--accent)}
+.list .ic{width:40px;height:40px;padding:0;display:grid;place-items:center;border-radius:8px;flex:none}
+.list .ic[aria-disabled="true"]{opacity:.35}
+.list .grip{cursor:grab;touch-action:none}
 .list .name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .list .badge{font-size:12px;font-weight:700;color:var(--accent);white-space:nowrap}
 .addrow{display:flex;gap:8px;align-items:flex-start}
@@ -159,7 +162,8 @@ mv-tile[data-ended] .ended{display:flex}
   <ui-dialog-content initial-focus="#dialogTitle" hidden>
     <ui-dialog-title id="dialogTitle" tabindex="-1">見る動画</ui-dialog-title>
     <ui-dialog-description>YouTubeの動画や配信を9つまで並べられます。映像は全部同時に流れ、音は選んだ1つだけ出ます。</ui-dialog-description>
-    <ol class="list" id="list"></ol>
+    <mv-list class="list" id="list" orientation="vertical" aria-label="並べる動画" aria-describedby="moveHelp"></mv-list>
+    <p class="hint" id="emptyList" hidden>まだ動画がありません。</p>
     <form class="addrow" id="addForm" novalidate>
       <ui-field id="addField">
         <ui-field-label>動画のURLを追加</ui-field-label>
@@ -206,7 +210,7 @@ const reorderText=m=>{
 // 並べ替えはUI SDKのcreateReorderに任せる。iframeは動かすと読み込み直しになるので、DOMの順番は変えず、data-indexで表示位置だけを変える
 const sortableBoard=definePrimitive({
   name:"sortable-board",
-  options:{value:"list",defaultValue:"list",onValueChange:"callback",labelOf:"value"},
+  options:{value:"list",defaultValue:"list",onValueChange:"callback",labelOf:"value",orientation:"string"},
   controlled:["value"],
   state:o=>({value:o.value??o.defaultValue??[],moving:null}),
   sync:o=>o.value===undefined?{}:{value:o.value},
@@ -215,7 +219,7 @@ const sortableBoard=definePrimitive({
     const reorder=createReorder(context,{
       slot:"tile",key:"value",draft:"moving",
       set:(value,details)=>change("value",value,details),
-      orientation:()=>"grid",
+      orientation:()=>context.options().orientation||"grid",
       label:key=>context.options().labelOf?.(key),
       message:reorderText,
     })
@@ -250,6 +254,12 @@ createParts(sortableBoard,{
   root:"mv-board",
   tile:"mv-tile",
   handle:{tag:"mv-handle",target:wrappedButton,display:"contents"},
+})
+// 一覧画面の並べ替えにも同じ部品を使う。縦に並ぶので orientation="vertical" にする
+createParts(sortableBoard,{
+  root:"mv-list",
+  tile:"mv-list-item",
+  handle:{tag:"mv-list-handle",target:wrappedButton,display:"contents"},
 })
 
 let ids=[], tiles=new Map(), audioId=null, layoutMode="0", ytReady=false, seq=0
@@ -312,7 +322,7 @@ function layout(){
   })
 }
 const slotCss=document.createElement("style")
-slotCss.textContent=Array.from({length:MAX},(_,i)=>`mv-tile[data-index="${i}"]{--x:var(--x${i});--y:var(--y${i});--w:var(--w${i});--h:var(--h${i})}`).join("\n")
+slotCss.textContent=Array.from({length:MAX},(_,i)=>`mv-tile[data-index="${i}"]{--x:var(--x${i});--y:var(--y${i});--w:var(--w${i});--h:var(--h${i})}\nmv-list-item[data-index="${i}"]{order:${i}}`).join("\n")
 document.head.appendChild(slotCss)
 
 function renderLayoutChoices(){
@@ -453,6 +463,7 @@ function render(){
   renderLayoutChoices(); persist(); layout(); paint(); renderList()
   if(!$("chat").hidden) renderChatChoices()
 }
+customElements.whenDefined("mv-board").then(()=>{board.labelOf=nameOf})
 board.addEventListener("valuechange",e=>{
   ids=[...e.detail.value]; board.value=[...ids]
   persist(); paint(); renderList()
@@ -460,17 +471,57 @@ board.addEventListener("valuechange",e=>{
 
 /* ---------- 一覧(ダイアログ) ---------- */
 const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]))
+const UP='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 6-6 6 6"/></svg>'
+const DOWN='<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 10 6 6 6-6"/></svg>'
+function shift(id,step){
+  const i=ids.indexOf(id), j=i+step; if(i<0||j<0||j>=ids.length) return
+  const next=[...ids]; next.splice(i,1); next.splice(j,0,id)
+  setOrder(next); persist(); renderList(); layout(); paint()
+  announce(`${nameOf(id)}を${j+1}番目に移動しました`)
+}
+// 並べ替えの間は要素を作り直さない(フォーカスが外れるため)。並びはdata-indexとCSSのorderで変える
 function renderList(){
   const list=$("list")
-  list.innerHTML=ids.length?ids.map((id,i)=>`<li><span class="num" aria-hidden="true">${i+1}</span><span class="name">${esc(nameOf(id))}</span>${id===audioId?'<span class="badge">音声オン</span>':""}<ui-button data-id="${id}"><button aria-label="${esc(nameOf(id))}を削除">削除</button></ui-button></li>`).join(""):'<li><span class="name">まだ動画がありません。</span></li>'
-  list.querySelectorAll("ui-button[data-id]").forEach(b=>b.querySelector("button").addEventListener("click",()=>{
-    const id=b.dataset.id, name=nameOf(id)
-    ids=ids.filter(x=>x!==id); render(); announce(`${name}を削除しました`)
-    ;(list.querySelector("button")||$("addInput")).focus()
-  }))
+  const have=[...list.querySelectorAll("mv-list-item")].map(el=>el.getAttribute("value"))
+  const same=have.length===ids.length&&have.every(id=>ids.includes(id))
+  if(!same){
+    list.innerHTML=ids.map(id=>`<mv-list-item value="${id}">
+      <mv-list-handle><button type="button" class="ic grip">${ICON.grip}</button></mv-list-handle>
+      <span class="name"></span><span class="badge" hidden>音声オン</span>
+      <button type="button" class="ic up">${UP}</button>
+      <button type="button" class="ic down">${DOWN}</button>
+      <ui-button><button type="button" class="del">削除</button></ui-button>
+    </mv-list-item>`).join("")
+    list.querySelectorAll("mv-list-item").forEach(item=>{
+      const id=item.getAttribute("value")
+      item.querySelector(".up").addEventListener("click",e=>{if(e.currentTarget.getAttribute("aria-disabled")!=="true")shift(id,-1)})
+      item.querySelector(".down").addEventListener("click",e=>{if(e.currentTarget.getAttribute("aria-disabled")!=="true")shift(id,1)})
+      item.querySelector(".del").addEventListener("click",()=>{
+        const name=nameOf(id), i=ids.indexOf(id)
+        ids=ids.filter(x=>x!==id); render(); announce(`${name}を削除しました`)
+        const rest=[...list.querySelectorAll("mv-list-item")].sort((a,b)=>a.dataset.index-b.dataset.index)
+        ;(rest[Math.min(i,rest.length-1)]?.querySelector(".del")||$("addInput")).focus()
+      })
+    })
+  }
+  customElements.whenDefined("mv-list").then(()=>{list.labelOf=nameOf;list.value=[...ids]})
+  list.querySelectorAll("mv-list-item").forEach(item=>{
+    const id=item.getAttribute("value"), i=ids.indexOf(id), name=nameOf(id)
+    item.querySelector(".name").textContent=name
+    item.querySelector(".badge").hidden=id!==audioId
+    item.querySelector(".grip").setAttribute("aria-label",`${name}を移動`)
+    const up=item.querySelector(".up"), down=item.querySelector(".down")
+    up.setAttribute("aria-label",`${name}を上へ`); down.setAttribute("aria-label",`${name}を下へ`)
+    up.setAttribute("aria-disabled",String(i===0)); down.setAttribute("aria-disabled",String(i===ids.length-1))
+    item.querySelector(".del").setAttribute("aria-label",`${name}を削除`)
+  })
+  $("emptyList").hidden=ids.length>0
   $("addInput").disabled=ids.length>=MAX
   $("addInput").placeholder=ids.length>=MAX?`${MAX}つまで並べています`:"https://www.youtube.com/watch?v=…"
 }
+$("list").addEventListener("valuechange",e=>{
+  setOrder([...e.detail.value]); persist(); renderList(); layout(); paint()
+})
 $("addForm").addEventListener("submit",e=>{
   e.preventDefault()
   const field=$("addField"), input=$("addInput"), raw=input.value, id=parseId(raw)
