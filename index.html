@@ -60,7 +60,6 @@ mv-tile{position:absolute;display:block;background:#000;border-radius:8px;overfl
 mv-tile[data-audio]{outline-color:var(--accent)}
 mv-tile[data-paused] .frame{filter:brightness(.45)}
 mv-tile[data-paused]::after{content:"一時停止中";position:absolute;right:8px;top:8px;z-index:2;padding:3px 10px;border-radius:999px;background:rgba(13,15,20,.85);color:var(--ink);font-size:12px;font-weight:700;pointer-events:none}
-mv-tile[data-paused][data-audio]::after{right:44px}
 mv-tile[data-grabbed]{transform:translate(var(--drag-x,0),var(--drag-y,0));z-index:5;box-shadow:0 12px 32px rgba(0,0,0,.6);outline-color:#fff}
 mv-tile[data-grabbed][data-dragging]{transition:none}
 mv-board:has([data-grabbed]) iframe{pointer-events:none}
@@ -71,8 +70,6 @@ body.yt-controls mv-tile .shield{display:none}
 mv-tile .controls{position:absolute;left:6px;bottom:6px;z-index:2;display:flex;gap:6px;opacity:0;pointer-events:none;transition:opacity .18s}
 mv-tile[data-show] .controls,mv-tile:focus-within .controls,mv-tile[data-grabbed] .controls,body.yt-controls mv-tile .controls{opacity:1;pointer-events:auto}
 @media (hover:hover){mv-tile:hover .controls{opacity:1;pointer-events:auto}}
-mv-tile .badge{position:absolute;right:6px;top:6px;z-index:2;width:30px;height:30px;border-radius:999px;display:none;place-items:center;background:var(--accent);color:var(--on-accent);pointer-events:none}
-mv-tile[data-audio] .badge{display:grid}
 mv-tile .controls button{width:40px;height:40px;padding:0;display:grid;place-items:center;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(13,15,20,.78);color:var(--ink);cursor:pointer;touch-action:none}
 mv-tile .controls button[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--on-accent)}
 mv-tile .controls .grip{cursor:grab}
@@ -394,7 +391,7 @@ function makeTile(id){
   const key="yt"+(++seq)
   const el=document.createElement("mv-tile")
   el.setAttribute("value",id)
-  el.innerHTML=`<span class="sr tile-title"></span><div class="frame"><div id="${key}"></div></div><div class="shield" aria-hidden="true"></div><div class="badge" aria-hidden="true">${ICON.sound}</div>
+  el.innerHTML=`<span class="sr tile-title"></span><div class="frame"><div id="${key}"></div></div><div class="shield" aria-hidden="true"></div>
     <button type="button" class="live"></button>
     <div class="ended"><p>配信が終わったか、再生できなくなりました。</p><button type="button" data-variant="solid" class="endremove">一覧から外す</button></div>
     <button type="button" class="target"></button>
